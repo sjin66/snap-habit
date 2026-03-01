@@ -2,22 +2,23 @@ import React from 'react';
 import { View, Text, ColorSchemeName } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { TodayScreen } from '../screens/TodayScreen';
 
 // Placeholder screens
 const StatsScreen = () => (
-  <View className="flex-1 justify-center items-center bg-surface dark:bg-neutral-950">
-    <Text className="text-base text-content-tertiary dark:text-neutral-400">Stats (coming soon)</Text>
+  <View className="flex-1 justify-center items-center bg-background dark:bg-background-dark">
+    <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">Stats (coming soon)</Text>
   </View>
 );
 const DiscoverScreen = () => (
-  <View className="flex-1 justify-center items-center bg-surface dark:bg-neutral-950">
-    <Text className="text-base text-content-tertiary dark:text-neutral-400">Discover (coming soon)</Text>
+  <View className="flex-1 justify-center items-center bg-background dark:bg-background-dark">
+    <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">Discover (coming soon)</Text>
   </View>
 );
 const ProfileScreen = () => (
-  <View className="flex-1 justify-center items-center bg-surface dark:bg-neutral-950">
-    <Text className="text-base text-content-tertiary dark:text-neutral-400">Profile (coming soon)</Text>
+  <View className="flex-1 justify-center items-center bg-background dark:bg-background-dark">
+    <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">Profile (coming soon)</Text>
   </View>
 );
 
@@ -30,13 +31,13 @@ export type RootTabParamList = {
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
-function TabIcon({ icon, label, focused }: { icon: string; label: string; focused: boolean }) {
+function TabIcon({ icon, label, focused }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; focused: boolean }) {
   return (
     <View className="items-center pt-1.5">
-      <Text className={`text-xl mb-0.5 ${focused ? 'opacity-100' : 'opacity-40'}`}>{icon}</Text>
+      <Ionicons name={icon} size={22} color={focused ? '#171717' : '#A3A3A3'} style={{ marginBottom: 2 }} />
       <Text
         className={`text-2xs font-semibold tracking-wide ${
-          focused ? 'text-primary dark:text-neutral-50' : 'text-content-tertiary dark:text-neutral-400'
+          focused ? 'text-foreground dark:text-foreground-dark' : 'text-muted-foreground dark:text-muted-foreground-dark'
         }`}
       >
         {label}
@@ -45,7 +46,7 @@ function TabIcon({ icon, label, focused }: { icon: string; label: string; focuse
   );
 }
 
-// Light & Dark navigation themes (shadcn neutral)
+// Light & Dark navigation themes
 const LightNavTheme = {
   ...DefaultTheme,
   colors: {
@@ -54,7 +55,6 @@ const LightNavTheme = {
     card: '#FFFFFF',
     border: '#E5E5E5',
     primary: '#171717',
-    text: '#0A0A0A',
   },
 };
 
@@ -66,7 +66,6 @@ const DarkNavTheme = {
     card: '#0A0A0A',
     border: '#262626',
     primary: '#FAFAFA',
-    text: '#FAFAFA',
   },
 };
 
@@ -97,7 +96,7 @@ export function RootNavigator({ colorScheme }: Props) {
           component={TodayScreen}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon icon="🔔" label="TODAY" focused={focused} />
+              <TabIcon icon="checkmark-circle" label="TODAY" focused={focused} />
             ),
           }}
         />
@@ -106,7 +105,7 @@ export function RootNavigator({ colorScheme }: Props) {
           component={StatsScreen}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon icon="📊" label="STATS" focused={focused} />
+              <TabIcon icon="bar-chart" label="STATS" focused={focused} />
             ),
           }}
         />
@@ -115,7 +114,7 @@ export function RootNavigator({ colorScheme }: Props) {
           component={DiscoverScreen}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon icon="🧭" label="DISCOVER" focused={focused} />
+              <TabIcon icon="compass" label="DISCOVER" focused={focused} />
             ),
           }}
         />
@@ -124,7 +123,7 @@ export function RootNavigator({ colorScheme }: Props) {
           component={ProfileScreen}
           options={{
             tabBarIcon: ({ focused }) => (
-              <TabIcon icon="👤" label="PROFILE" focused={focused} />
+              <TabIcon icon="person" label="PROFILE" focused={focused} />
             ),
           }}
         />

@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { TodayHabitItem } from '../types/habit';
 
 interface Props {
@@ -23,10 +24,10 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
   return (
     <Animated.View
       className={`
-        flex-row items-center rounded-2xl py-4 px-4 mx-5 border border-border dark:border-neutral-800
+        flex-row items-center rounded-2xl py-4 px-4 mx-5 shadow-sm border
         ${item.isCompleted
-          ? 'bg-secondary dark:bg-neutral-800'
-          : 'bg-surface-card dark:bg-neutral-900'
+          ? 'bg-secondary dark:bg-secondary-dark border-border dark:border-border-dark'
+          : 'bg-card dark:bg-card-dark border-border dark:border-border-dark'
         }
       `}
       style={{ transform: [{ scale }] }}
@@ -34,9 +35,9 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
       {/* Icon */}
       <View
         className="w-[52px] h-[52px] rounded-[14px] justify-center items-center mr-3.5"
-        style={{ backgroundColor: item.color + (item.isCompleted ? '33' : '22') }}
+        style={{ backgroundColor: item.color + (item.isCompleted ? '33' : '15') }}
       >
-        <Text className="text-[26px]">{item.icon}</Text>
+        <Ionicons name={item.icon as any} size={24} color={item.color} />
       </View>
 
       {/* Info */}
@@ -44,22 +45,22 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
         <Text
           className={`text-base font-semibold mb-1 ${
             item.isCompleted
-              ? 'text-content dark:text-neutral-50'
-              : 'text-content dark:text-neutral-50'
+              ? 'text-muted-foreground dark:text-muted-foreground-dark'
+              : 'text-foreground dark:text-foreground-dark'
           }`}
         >
           {item.name}
         </Text>
         <View className="flex-row items-center">
-          <Text className="text-[13px] text-content-secondary dark:text-neutral-400">
+          <Text className="text-[13px] text-muted-foreground dark:text-muted-foreground-dark">
             🔥 {streak}
           </Text>
-          <Text className="text-[13px] text-content-tertiary dark:text-neutral-500"> · </Text>
+          <Text className="text-[13px] text-muted-foreground dark:text-muted-foreground-dark"> · </Text>
           <Text
             className={`text-[13px] ${
               item.isCompleted
-                ? 'text-content dark:text-neutral-50 font-semibold'
-                : 'text-content-secondary dark:text-neutral-400'
+                ? 'text-foreground dark:text-foreground-dark font-semibold'
+                : 'text-muted-foreground dark:text-muted-foreground-dark'
             }`}
           >
             {item.isCompleted ? 'Done' : 'Not done'}
@@ -73,15 +74,15 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
         activeOpacity={0.7}
         className={`w-[38px] h-[38px] rounded-full justify-center items-center ${
           item.isCompleted
-            ? 'bg-primary dark:bg-neutral-50'
-            : 'bg-secondary dark:bg-neutral-800 border-[1.5px] border-border dark:border-neutral-700'
+            ? 'bg-primary dark:bg-primary-dark'
+            : 'bg-input dark:bg-input-dark border-[1.5px] border-border dark:border-border-dark'
         }`}
       >
         <Text
           className={`text-lg font-bold ${
             item.isCompleted
-              ? 'text-primary-foreground dark:text-neutral-900'
-              : 'text-content-tertiary dark:text-neutral-500'
+              ? 'text-primary-foreground dark:text-primary-foreground-dark'
+              : 'text-muted-foreground dark:text-muted-foreground-dark'
           }`}
         >
           {item.isCompleted ? '✓' : '+'}

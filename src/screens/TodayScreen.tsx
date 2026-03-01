@@ -48,7 +48,7 @@ export function TodayScreen() {
         {
           id: '1',
           name: 'Drink Water',
-          icon: '💧',
+          icon: 'water',
           color: '#FF8C00',
           frequency: { type: 'daily' },
           createdAt: new Date().toISOString(),
@@ -56,7 +56,7 @@ export function TodayScreen() {
         {
           id: '2',
           name: 'Meditation',
-          icon: '🧘',
+          icon: 'leaf',
           color: '#6C63FF',
           frequency: { type: 'daily' },
           createdAt: new Date().toISOString(),
@@ -64,7 +64,7 @@ export function TodayScreen() {
         {
           id: '3',
           name: 'Reading',
-          icon: '📚',
+          icon: 'book',
           color: '#4CAF50',
           frequency: { type: 'daily' },
           createdAt: new Date().toISOString(),
@@ -72,7 +72,7 @@ export function TodayScreen() {
         {
           id: '4',
           name: 'Push Ups',
-          icon: '💪',
+          icon: 'fitness',
           color: '#4CAF50',
           frequency: { type: 'daily' },
           createdAt: new Date().toISOString(),
@@ -104,7 +104,7 @@ export function TodayScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-surface dark:bg-neutral-950" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background dark:bg-background-dark" edges={['top']}>
       <StatusBar
         barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={colorScheme === 'dark' ? '#0A0A0A' : '#FFFFFF'}
@@ -120,18 +120,18 @@ export function TodayScreen() {
             {/* Header */}
             <View className="flex-row justify-between items-start px-5 pt-3 pb-5">
               <View>
-                <Text className="text-sm text-content-secondary dark:text-neutral-400 mb-0.5">
+                <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mb-0.5">
                   {dateStr}
                 </Text>
-                <Text className="text-[32px] font-extrabold text-content dark:text-neutral-50 tracking-tight">
+                <Text className="text-[32px] font-extrabold text-foreground dark:text-foreground-dark tracking-tight">
                   Today
                 </Text>
               </View>
               <TouchableOpacity
                 activeOpacity={0.7}
-                className="w-11 h-11 rounded-full bg-secondary dark:bg-neutral-800 justify-center items-center border border-border dark:border-neutral-700 mt-1"
+                className="w-11 h-11 rounded-full bg-secondary dark:bg-secondary-dark justify-center items-center shadow-sm mt-1 border border-border dark:border-border-dark"
               >
-                <Text className="text-[22px] text-content dark:text-neutral-50 font-light leading-[26px]">
+                <Text className="text-[22px] text-foreground dark:text-foreground-dark font-light leading-[26px]">
                   +
                 </Text>
               </TouchableOpacity>

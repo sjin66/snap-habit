@@ -9,47 +9,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Primary (near-black in light, near-white in dark)
-        primary: {
-          DEFAULT: '#171717',
-          foreground: '#FAFAFA',
-        },
-        // Secondary / Muted surfaces
-        secondary: {
-          DEFAULT: '#F5F5F5',
-          foreground: '#171717',
-        },
-        muted: {
-          DEFAULT: '#F5F5F5',
-          foreground: '#737373',
-        },
-        // Accent
-        accent: {
-          DEFAULT: '#F5F5F5',
-          foreground: '#171717',
-        },
-        // Destructive (keeps red for danger/delete)
-        destructive: {
-          DEFAULT: '#EF4444',
-          foreground: '#FAFAFA',
-        },
-        // Surfaces
-        surface: {
-          DEFAULT: '#FFFFFF',
-          secondary: '#F5F5F5',
-          card: '#FFFFFF',
-        },
-        // Text
-        content: {
-          DEFAULT: '#0A0A0A',
-          secondary: '#737373',
-          tertiary: '#A3A3A3',
-          inverse: '#FAFAFA',
-        },
-        // Borders
-        border: {
-          DEFAULT: '#E5E5E5',
-          light: '#F5F5F5',
+        background:          { DEFAULT: '#FFFFFF',  dark: '#0A0A0A' },
+        foreground:          { DEFAULT: '#0A0A0A',  dark: '#FAFAFA' },
+        card:                { DEFAULT: '#FFFFFF',  dark: '#0A0A0A', foreground: '#0A0A0A', 'foreground-dark': '#FAFAFA' },
+        primary:             { DEFAULT: '#171717',  dark: '#FAFAFA', foreground: '#FAFAFA', 'foreground-dark': '#171717' },
+        secondary:           { DEFAULT: '#F5F5F5',  dark: '#262626', foreground: '#171717', 'foreground-dark': '#FAFAFA' },
+        muted:               { DEFAULT: '#F5F5F5',  dark: '#262626', foreground: '#737373', 'foreground-dark': '#A3A3A3' },
+        accent:              { DEFAULT: '#F5F5F5',  dark: '#262626', foreground: '#171717', 'foreground-dark': '#FAFAFA' },
+        destructive:         { DEFAULT: '#EF4444',  dark: '#7F1D1D', foreground: '#FAFAFA' },
+        border:              { DEFAULT: '#E5E5E5',  dark: '#262626' },
+        input:               { DEFAULT: '#E5E5E5',  dark: '#262626' },
+        ring:                { DEFAULT: '#0A0A0A',  dark: '#D4D4D4' },
+        chart: {
+          1: '#E8723A', 2: '#2A9D8F', 3: '#264653', 4: '#E9C46A', 5: '#F4A261',
         },
       },
       borderRadius: {
