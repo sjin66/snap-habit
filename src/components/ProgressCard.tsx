@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 
 const QUOTES = [
   '"One step at a time, you\'re making great progress."',
@@ -18,76 +18,30 @@ export function ProgressCard({ completed, total }: Props) {
   const quote = QUOTES[Math.floor((completed / Math.max(total, 1)) * (QUOTES.length - 1))];
 
   return (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        <Text style={styles.countText}>
-          <Text style={styles.countBold}>{completed} / {total}</Text>
-          <Text style={styles.countLabel}> completed</Text>
+    <View className="bg-surface-card dark:bg-gray-800 rounded-2xl p-5 mx-5 shadow-sm">
+      <View className="flex-row justify-between items-center mb-3">
+        <Text className="text-base">
+          <Text className="font-bold text-content dark:text-white text-base">
+            {completed} / {total}
+          </Text>
+          <Text className="text-content-secondary dark:text-gray-400 font-normal">
+            {' '}completed
+          </Text>
         </Text>
-        <Text style={styles.percent}>{percent}%</Text>
+        <Text className="text-base font-bold text-primary">{percent}%</Text>
       </View>
 
       {/* Progress bar */}
-      <View style={styles.barTrack}>
-        <View style={[styles.barFill, { width: `${percent}%` }]} />
+      <View className="h-1.5 bg-border dark:bg-gray-700 rounded-full mb-3.5 overflow-hidden">
+        <View
+          className="h-full bg-primary rounded-full"
+          style={{ width: `${percent}%` }}
+        />
       </View>
 
-      <Text style={styles.quote}>{quote}</Text>
+      <Text className="text-sm text-content-secondary dark:text-gray-400 italic leading-5">
+        {quote}
+      </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  countText: {
-    fontSize: 16,
-  },
-  countBold: {
-    fontWeight: '700',
-    color: '#1A1A2E',
-    fontSize: 16,
-  },
-  countLabel: {
-    color: '#6C757D',
-    fontWeight: '400',
-  },
-  percent: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#3B82F6',
-  },
-  barTrack: {
-    height: 6,
-    backgroundColor: '#E9ECEF',
-    borderRadius: 3,
-    marginBottom: 14,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    backgroundColor: '#3B82F6',
-    borderRadius: 3,
-  },
-  quote: {
-    fontSize: 14,
-    color: '#6C757D',
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
-});

@@ -4,8 +4,8 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   StatusBar,
+  useColorScheme,
   ListRenderItemInfo,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,6 +39,7 @@ const MOCK_STREAKS: Record<string, number> = {
 export function TodayScreen() {
   const { habits, setHabits, checkIn, getTodayItems } = useHabitStore();
   const dateStr = formatDate().full;
+  const colorScheme = useColorScheme();
 
   // Seed mock data on first render
   useEffect(() => {
@@ -103,89 +104,46 @@ export function TodayScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F2F3F7" />
+    <SafeAreaView className="flex-1 bg-surface-secondary dark:bg-gray-950" edges={['top']}>
+      <StatusBar
+        barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={colorScheme === 'dark' ? '#030712' : '#F2F3F7'}
+      />
       <FlatList
         data={todayItems}
         keyExtractor={(item) => item.habitId}
         renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        contentContainerStyle={{ paddingBottom: 16 }}
+        ItemSeparatorComponent={() => <View className="h-3" />}
         ListHeaderComponent={
           <>
             {/* Header */}
-            <View style={styles.header}>
+            <View className="flex-row justify-between items-start px-5 pt-3 pb-5">
               <View>
-                <Text style={styles.dateText}>{dateStr}</Text>
-                <Text style={styles.titleText}>Today</Text>
+                <Text className="text-sm text-content-secondary dark:text-gray-400 mb-0.5">
+                  {dateStr}
+                </Text>
+                <Text className="text-[32px] font-extrabold text-content dark:text-white tracking-tight">
+                  Today
+                </Text>
               </View>
-              <TouchableOpacity style={styles.addBtn} activeOpacity={0.7}>
-                <Text style={styles.addIcon}>+</Text>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                className="w-11 h-11 rounded-full bg-surface-card dark:bg-gray-800 justify-center items-center shadow-sm mt-1"
+              >
+                <Text className="text-[22px] text-content dark:text-white font-light leading-[26px]">
+                  +
+                </Text>
               </TouchableOpacity>
             </View>
 
             {/* Progress card */}
             <ProgressCard completed={completed} total={total} />
-            <View style={styles.sectionGap} />
+            <View className="h-6" />
           </>
         }
-        ListFooterComponent={<View style={{ height: 32 }} />}
+        ListFooterComponent={<View className="h-8" />}
       />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#F2F3F7',
-  },
-  list: {
-    paddingBottom: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 20,
-  },
-  dateText: {
-    fontSize: 14,
-    color: '#6C757D',
-    marginBottom: 2,
-  },
-  titleText: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1A1A2E',
-    letterSpacing: -0.5,
-  },
-  addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
-    marginTop: 4,
-  },
-  addIcon: {
-    fontSize: 22,
-    color: '#1A1A2E',
-    fontWeight: '300',
-    lineHeight: 26,
-  },
-  sectionGap: {
-    height: 24,
-  },
-  separator: {
-    height: 12,
-  },
-});

@@ -1,11 +1,5 @@
 import React, { useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import type { TodayHabitItem } from '../types/habit';
 
 interface Props {
@@ -19,7 +13,6 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
 
   const handlePress = useCallback(() => {
     if (item.isCompleted) return;
-    // Bounce animation
     Animated.sequence([
       Animated.spring(scale, { toValue: 0.93, useNativeDriver: true, speed: 50 }),
       Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 30 }),
@@ -27,32 +20,48 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
     onCheckIn(item.habitId);
   }, [item.isCompleted, item.habitId, onCheckIn, scale]);
 
-  const iconBg = item.isCompleted
-    ? item.color + '33'   // 20% opacity of habit color
-    : item.color + '22';
-
   return (
     <Animated.View
-      style={[
-        styles.card,
-        item.isCompleted && styles.cardCompleted,
-        { transform: [{ scale }] },
-      ]}
+      className={`
+        flex-row items-center rounded-2xl py-4 px-4 mx-5 shadow-sm
+        ${item.isCompleted
+          ? 'bg-success-50 dark:bg-green-900/30'
+          : 'bg-surface-card dark:bg-gray-800'
+        }
+      `}
+      style={{ transform: [{ scale }] }}
     >
       {/* Icon */}
-      <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
-        <Text style={styles.icon}>{item.icon}</Text>
+      <View
+        className="w-[52px] h-[52px] rounded-[14px] justify-center items-center mr-3.5"
+        style={{ backgroundColor: item.color + (item.isCompleted ? '33' : '22') }}
+      >
+        <Text className="text-[26px]">{item.icon}</Text>
       </View>
 
       {/* Info */}
-      <View style={styles.info}>
-        <Text style={[styles.name, item.isCompleted && styles.nameCompleted]}>
+      <View className="flex-1">
+        <Text
+          className={`text-base font-semibold mb-1 ${
+            item.isCompleted
+              ? 'text-success-700 dark:text-green-300'
+              : 'text-content dark:text-white'
+          }`}
+        >
           {item.name}
         </Text>
-        <View style={styles.meta}>
-          <Text style={styles.streak}>🔥 {streak}</Text>
-          <Text style={styles.dot}> · </Text>
-          <Text style={[styles.status, item.isCompleted && styles.statusDone]}>
+        <View className="flex-row items-center">
+          <Text className="text-[13px] text-content-secondary dark:text-gray-400">
+            🔥 {streak}
+          </Text>
+          <Text className="text-[13px] text-gray-400 dark:text-gray-500"> · </Text>
+          <Text
+            className={`text-[13px] ${
+              item.isCompleted
+                ? 'text-success font-semibold'
+                : 'text-content-secondary dark:text-gray-400'
+            }`}
+          >
             {item.isCompleted ? 'Done' : 'Not done'}
           </Text>
         </View>
@@ -62,101 +71,22 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.7}
-        style={[
-          styles.checkBtn,
-          item.isCompleted ? styles.checkBtnDone : styles.checkBtnPending,
-        ]}
+        className={`w-[38px] h-[38px] rounded-full justify-center items-center ${
+          item.isCompleted
+            ? 'bg-success'
+            : 'bg-border-light dark:bg-gray-700 border-[1.5px] border-gray-300 dark:border-gray-600'
+        }`}
       >
-        <Text style={[styles.checkIcon, item.isCompleted && styles.checkIconDone]}>
+        <Text
+          className={`text-lg font-bold ${
+            item.isCompleted
+              ? 'text-content-inverse'
+              : 'text-content-tertiary dark:text-gray-500'
+          }`}
+        >
           {item.isCompleted ? '✓' : '+'}
         </Text>
       </TouchableOpacity>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  cardCompleted: {
-    backgroundColor: '#F0FBF0',
-  },
-  iconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  icon: {
-    fontSize: 26,
-  },
-  info: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A2E',
-    marginBottom: 4,
-  },
-  nameCompleted: {
-    color: '#2D6A2D',
-  },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  streak: {
-    fontSize: 13,
-    color: '#6C757D',
-  },
-  dot: {
-    fontSize: 13,
-    color: '#ADB5BD',
-  },
-  status: {
-    fontSize: 13,
-    color: '#6C757D',
-  },
-  statusDone: {
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-  checkBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkBtnPending: {
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1.5,
-    borderColor: '#D1D5DB',
-  },
-  checkBtnDone: {
-    backgroundColor: '#4CAF50',
-  },
-  checkIcon: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#9CA3AF',
-  },
-  checkIconDone: {
-    color: '#fff',
-  },
-});

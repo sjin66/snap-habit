@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * SnapHabit Theme
+ * 
+ * Light mode: default
+ * Dark mode:  activated via `dark:` prefix (class strategy)
+ *
+ * Usage examples:
+ *   <View className="bg-surface-secondary dark:bg-gray-900" />
+ *   <Text className="text-content dark:text-white" />
+ *   <View className="bg-surface-card dark:bg-gray-800 rounded-2xl" />
+ */

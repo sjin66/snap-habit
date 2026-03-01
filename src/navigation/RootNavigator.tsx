@@ -1,23 +1,23 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { View, Text, ColorSchemeName } from 'react-native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { TodayScreen } from '../screens/TodayScreen';
 
 // Placeholder screens
 const StatsScreen = () => (
-  <View style={styles.placeholder}>
-    <Text style={styles.placeholderText}>Stats (coming soon)</Text>
+  <View className="flex-1 justify-center items-center bg-surface-secondary dark:bg-gray-950">
+    <Text className="text-base text-content-tertiary dark:text-gray-500">Stats (coming soon)</Text>
   </View>
 );
 const DiscoverScreen = () => (
-  <View style={styles.placeholder}>
-    <Text style={styles.placeholderText}>Discover (coming soon)</Text>
+  <View className="flex-1 justify-center items-center bg-surface-secondary dark:bg-gray-950">
+    <Text className="text-base text-content-tertiary dark:text-gray-500">Discover (coming soon)</Text>
   </View>
 );
 const ProfileScreen = () => (
-  <View style={styles.placeholder}>
-    <Text style={styles.placeholderText}>Profile (coming soon)</Text>
+  <View className="flex-1 justify-center items-center bg-surface-secondary dark:bg-gray-950">
+    <Text className="text-base text-content-tertiary dark:text-gray-500">Profile (coming soon)</Text>
   </View>
 );
 
@@ -32,24 +32,59 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 
 function TabIcon({ icon, label, focused }: { icon: string; label: string; focused: boolean }) {
   return (
-    <View style={tabStyles.wrap}>
-      <Text style={[tabStyles.icon, focused && tabStyles.iconFocused]}>{icon}</Text>
-      <Text style={[tabStyles.label, focused && tabStyles.labelFocused]}>{label}</Text>
+    <View className="items-center pt-1.5">
+      <Text className={`text-xl mb-0.5 ${focused ? 'opacity-100' : 'opacity-40'}`}>{icon}</Text>
+      <Text
+        className={`text-2xs font-semibold tracking-wide ${
+          focused ? 'text-primary' : 'text-content-tertiary dark:text-gray-500'
+        }`}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
 
-export function RootNavigator() {
+// Light & Dark navigation themes
+const LightNavTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: '#F2F3F7',
+    card: '#FFFFFF',
+    border: '#E9ECEF',
+    primary: '#3B82F6',
+  },
+};
+
+const DarkNavTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: '#030712',
+    card: '#111827',
+    border: '#1F2937',
+    primary: '#3B82F6',
+  },
+};
+
+interface Props {
+  colorScheme: ColorSchemeName;
+}
+
+export function RootNavigator({ colorScheme }: Props) {
+  const isDark = colorScheme === 'dark';
+
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={isDark ? DarkNavTheme : LightNavTheme}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
           tabBarShowLabel: false,
           tabBarStyle: {
-            backgroundColor: '#fff',
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: '#E9ECEF',
+            backgroundColor: isDark ? '#111827' : '#FFFFFF',
+            borderTopWidth: 0.5,
+            borderTopColor: isDark ? '#1F2937' : '#E9ECEF',
             height: 64,
             paddingBottom: 8,
           },
@@ -95,40 +130,3 @@ export function RootNavigator() {
     </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  placeholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F2F3F7',
-  },
-  placeholderText: {
-    fontSize: 16,
-    color: '#9CA3AF',
-  },
-});
-
-const tabStyles = StyleSheet.create({
-  wrap: {
-    alignItems: 'center',
-    paddingTop: 6,
-  },
-  icon: {
-    fontSize: 20,
-    marginBottom: 2,
-    opacity: 0.4,
-  },
-  iconFocused: {
-    opacity: 1,
-  },
-  label: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    letterSpacing: 0.5,
-  },
-  labelFocused: {
-    color: '#3B82F6',
-  },
-});
