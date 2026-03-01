@@ -23,10 +23,10 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
   return (
     <Animated.View
       className={`
-        flex-row items-center rounded-2xl py-4 px-4 mx-5 shadow-sm
+        flex-row items-center rounded-2xl py-4 px-4 mx-5 border border-border dark:border-neutral-800
         ${item.isCompleted
-          ? 'bg-success-50 dark:bg-green-900/30'
-          : 'bg-surface-card dark:bg-gray-800'
+          ? 'bg-secondary dark:bg-neutral-800'
+          : 'bg-surface-card dark:bg-neutral-900'
         }
       `}
       style={{ transform: [{ scale }] }}
@@ -44,22 +44,22 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
         <Text
           className={`text-base font-semibold mb-1 ${
             item.isCompleted
-              ? 'text-success-700 dark:text-green-300'
-              : 'text-content dark:text-white'
+              ? 'text-content dark:text-neutral-50'
+              : 'text-content dark:text-neutral-50'
           }`}
         >
           {item.name}
         </Text>
         <View className="flex-row items-center">
-          <Text className="text-[13px] text-content-secondary dark:text-gray-400">
+          <Text className="text-[13px] text-content-secondary dark:text-neutral-400">
             🔥 {streak}
           </Text>
-          <Text className="text-[13px] text-gray-400 dark:text-gray-500"> · </Text>
+          <Text className="text-[13px] text-content-tertiary dark:text-neutral-500"> · </Text>
           <Text
             className={`text-[13px] ${
               item.isCompleted
-                ? 'text-success font-semibold'
-                : 'text-content-secondary dark:text-gray-400'
+                ? 'text-content dark:text-neutral-50 font-semibold'
+                : 'text-content-secondary dark:text-neutral-400'
             }`}
           >
             {item.isCompleted ? 'Done' : 'Not done'}
@@ -73,15 +73,15 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
         activeOpacity={0.7}
         className={`w-[38px] h-[38px] rounded-full justify-center items-center ${
           item.isCompleted
-            ? 'bg-success'
-            : 'bg-border-light dark:bg-gray-700 border-[1.5px] border-gray-300 dark:border-gray-600'
+            ? 'bg-primary dark:bg-neutral-50'
+            : 'bg-secondary dark:bg-neutral-800 border-[1.5px] border-border dark:border-neutral-700'
         }`}
       >
         <Text
           className={`text-lg font-bold ${
             item.isCompleted
-              ? 'text-content-inverse'
-              : 'text-content-tertiary dark:text-gray-500'
+              ? 'text-primary-foreground dark:text-neutral-900'
+              : 'text-content-tertiary dark:text-neutral-500'
           }`}
         >
           {item.isCompleted ? '✓' : '+'}

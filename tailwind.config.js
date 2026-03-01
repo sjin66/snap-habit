@@ -4,66 +4,52 @@ module.exports = {
     './App.{js,jsx,ts,tsx}',
     './src/**/*.{js,jsx,ts,tsx}',
   ],
+  presets: [require('nativewind/preset')],
   darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Primary brand
+        // Primary (near-black in light, near-white in dark)
         primary: {
-          DEFAULT: '#3B82F6',
-          50: '#EFF6FF',
-          100: '#DBEAFE',
-          200: '#BFDBFE',
-          300: '#93C5FD',
-          400: '#60A5FA',
-          500: '#3B82F6',
-          600: '#2563EB',
-          700: '#1D4ED8',
-          800: '#1E40AF',
-          900: '#1E3A8A',
+          DEFAULT: '#171717',
+          foreground: '#FAFAFA',
         },
-        // Success / Done
-        success: {
-          DEFAULT: '#4CAF50',
-          50: '#F0FBF0',
-          100: '#DCFCE7',
-          200: '#BBF7D0',
-          300: '#86EFAC',
-          400: '#4ADE80',
-          500: '#4CAF50',
-          600: '#16A34A',
-          700: '#15803D',
+        // Secondary / Muted surfaces
+        secondary: {
+          DEFAULT: '#F5F5F5',
+          foreground: '#171717',
         },
-        // Warning (streak fire)
-        warning: {
-          DEFAULT: '#FF9800',
-          50: '#FFF8E1',
-          500: '#FF9800',
-          600: '#FB8C00',
+        muted: {
+          DEFAULT: '#F5F5F5',
+          foreground: '#737373',
         },
-        // Danger / Missed
-        danger: {
-          DEFAULT: '#F44336',
-          50: '#FEF2F2',
-          500: '#F44336',
+        // Accent
+        accent: {
+          DEFAULT: '#F5F5F5',
+          foreground: '#171717',
         },
-        // Light mode surfaces
+        // Destructive (keeps red for danger/delete)
+        destructive: {
+          DEFAULT: '#EF4444',
+          foreground: '#FAFAFA',
+        },
+        // Surfaces
         surface: {
           DEFAULT: '#FFFFFF',
-          secondary: '#F2F3F7',
+          secondary: '#F5F5F5',
           card: '#FFFFFF',
         },
         // Text
         content: {
-          DEFAULT: '#1A1A2E',
-          secondary: '#6C757D',
-          tertiary: '#9CA3AF',
-          inverse: '#FFFFFF',
+          DEFAULT: '#0A0A0A',
+          secondary: '#737373',
+          tertiary: '#A3A3A3',
+          inverse: '#FAFAFA',
         },
         // Borders
         border: {
-          DEFAULT: '#E9ECEF',
-          light: '#F3F4F6',
+          DEFAULT: '#E5E5E5',
+          light: '#F5F5F5',
         },
       },
       borderRadius: {

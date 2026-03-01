@@ -6,18 +6,18 @@ import { TodayScreen } from '../screens/TodayScreen';
 
 // Placeholder screens
 const StatsScreen = () => (
-  <View className="flex-1 justify-center items-center bg-surface-secondary dark:bg-gray-950">
-    <Text className="text-base text-content-tertiary dark:text-gray-500">Stats (coming soon)</Text>
+  <View className="flex-1 justify-center items-center bg-surface dark:bg-neutral-950">
+    <Text className="text-base text-content-tertiary dark:text-neutral-400">Stats (coming soon)</Text>
   </View>
 );
 const DiscoverScreen = () => (
-  <View className="flex-1 justify-center items-center bg-surface-secondary dark:bg-gray-950">
-    <Text className="text-base text-content-tertiary dark:text-gray-500">Discover (coming soon)</Text>
+  <View className="flex-1 justify-center items-center bg-surface dark:bg-neutral-950">
+    <Text className="text-base text-content-tertiary dark:text-neutral-400">Discover (coming soon)</Text>
   </View>
 );
 const ProfileScreen = () => (
-  <View className="flex-1 justify-center items-center bg-surface-secondary dark:bg-gray-950">
-    <Text className="text-base text-content-tertiary dark:text-gray-500">Profile (coming soon)</Text>
+  <View className="flex-1 justify-center items-center bg-surface dark:bg-neutral-950">
+    <Text className="text-base text-content-tertiary dark:text-neutral-400">Profile (coming soon)</Text>
   </View>
 );
 
@@ -36,7 +36,7 @@ function TabIcon({ icon, label, focused }: { icon: string; label: string; focuse
       <Text className={`text-xl mb-0.5 ${focused ? 'opacity-100' : 'opacity-40'}`}>{icon}</Text>
       <Text
         className={`text-2xs font-semibold tracking-wide ${
-          focused ? 'text-primary' : 'text-content-tertiary dark:text-gray-500'
+          focused ? 'text-primary dark:text-neutral-50' : 'text-content-tertiary dark:text-neutral-400'
         }`}
       >
         {label}
@@ -45,15 +45,16 @@ function TabIcon({ icon, label, focused }: { icon: string; label: string; focuse
   );
 }
 
-// Light & Dark navigation themes
+// Light & Dark navigation themes (shadcn neutral)
 const LightNavTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: '#F2F3F7',
+    background: '#FFFFFF',
     card: '#FFFFFF',
-    border: '#E9ECEF',
-    primary: '#3B82F6',
+    border: '#E5E5E5',
+    primary: '#171717',
+    text: '#0A0A0A',
   },
 };
 
@@ -61,10 +62,11 @@ const DarkNavTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    background: '#030712',
-    card: '#111827',
-    border: '#1F2937',
-    primary: '#3B82F6',
+    background: '#0A0A0A',
+    card: '#0A0A0A',
+    border: '#262626',
+    primary: '#FAFAFA',
+    text: '#FAFAFA',
   },
 };
 
@@ -82,9 +84,9 @@ export function RootNavigator({ colorScheme }: Props) {
           headerShown: false,
           tabBarShowLabel: false,
           tabBarStyle: {
-            backgroundColor: isDark ? '#111827' : '#FFFFFF',
+            backgroundColor: isDark ? '#0A0A0A' : '#FFFFFF',
             borderTopWidth: 0.5,
-            borderTopColor: isDark ? '#1F2937' : '#E9ECEF',
+            borderTopColor: isDark ? '#262626' : '#E5E5E5',
             height: 64,
             paddingBottom: 8,
           },

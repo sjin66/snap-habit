@@ -104,10 +104,10 @@ export function TodayScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-secondary dark:bg-gray-950" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-surface dark:bg-neutral-950" edges={['top']}>
       <StatusBar
         barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
-        backgroundColor={colorScheme === 'dark' ? '#030712' : '#F2F3F7'}
+        backgroundColor={colorScheme === 'dark' ? '#0A0A0A' : '#FFFFFF'}
       />
       <FlatList
         data={todayItems}
@@ -120,18 +120,18 @@ export function TodayScreen() {
             {/* Header */}
             <View className="flex-row justify-between items-start px-5 pt-3 pb-5">
               <View>
-                <Text className="text-sm text-content-secondary dark:text-gray-400 mb-0.5">
+                <Text className="text-sm text-content-secondary dark:text-neutral-400 mb-0.5">
                   {dateStr}
                 </Text>
-                <Text className="text-[32px] font-extrabold text-content dark:text-white tracking-tight">
+                <Text className="text-[32px] font-extrabold text-content dark:text-neutral-50 tracking-tight">
                   Today
                 </Text>
               </View>
               <TouchableOpacity
                 activeOpacity={0.7}
-                className="w-11 h-11 rounded-full bg-surface-card dark:bg-gray-800 justify-center items-center shadow-sm mt-1"
+                className="w-11 h-11 rounded-full bg-secondary dark:bg-neutral-800 justify-center items-center border border-border dark:border-neutral-700 mt-1"
               >
-                <Text className="text-[22px] text-content dark:text-white font-light leading-[26px]">
+                <Text className="text-[22px] text-content dark:text-neutral-50 font-light leading-[26px]">
                   +
                 </Text>
               </TouchableOpacity>

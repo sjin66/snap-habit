@@ -8,15 +8,18 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const COLORS = {
-  primary: '#6C63FF',
-  success: '#4CAF50',
-  warning: '#FF9800',
-  danger: '#F44336',
-  background: '#F8F9FA',
+  primary: '#171717',
+  primaryForeground: '#FAFAFA',
+  secondary: '#F5F5F5',
+  muted: '#F5F5F5',
+  mutedForeground: '#737373',
+  destructive: '#EF4444',
+  background: '#FFFFFF',
+  foreground: '#0A0A0A',
   surface: '#FFFFFF',
-  text: '#1A1A2E',
-  textSecondary: '#6C757D',
-  border: '#E9ECEF',
+  text: '#0A0A0A',
+  textSecondary: '#737373',
+  border: '#E5E5E5',
 } as const;
 
 export const HABIT_ICONS = [
