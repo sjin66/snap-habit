@@ -6,11 +6,10 @@ import type { TodayHabitItem } from '../types/habit';
 
 interface Props {
   item: TodayHabitItem;
-  streak: number;
   onCheckIn: (habitId: string) => void;
 }
 
-export function HabitCard({ item, streak, onCheckIn }: Props) {
+export function HabitCard({ item, onCheckIn }: Props) {
   const scale = React.useRef(new Animated.Value(1)).current;
   const navigation = useNavigation<any>();
 
@@ -59,7 +58,7 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
         </Text>
         <View className="flex-row items-center">
           <Text className="text-[13px] text-muted-foreground dark:text-muted-foreground-dark">
-            🔥 {streak}
+            {item.dailyTarget} {item.unit}
           </Text>
           <Text className="text-[13px] text-muted-foreground dark:text-muted-foreground-dark"> · </Text>
           <Text

@@ -29,14 +29,6 @@ function formatDate(): { weekday: string; full: string } {
   };
 }
 
-// Mock streak map (habitId → streak count)
-const MOCK_STREAKS: Record<string, number> = {
-  '1': 14,
-  '2': 7,
-  '3': 21,
-  '4': 5,
-};
-
 export function TodayScreen() {
   const { habits, setHabits, checkIn, getTodayItems } = useHabitStore();
   const navigation = useNavigation<any>();
@@ -98,7 +90,6 @@ export function TodayScreen() {
     ({ item }: ListRenderItemInfo<TodayHabitItem>) => (
       <HabitCard
         item={item}
-        streak={MOCK_STREAKS[item.habitId] ?? 0}
         onCheckIn={handleCheckIn}
       />
     ),

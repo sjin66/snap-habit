@@ -40,6 +40,8 @@ export interface TodayHabitItem {
   name: string;
   icon: string;
   color: string;
+  dailyTarget: number;
+  unit: string;
   isCompleted: boolean;
   completedAt?: string;
 }
