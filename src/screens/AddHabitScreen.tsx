@@ -36,15 +36,11 @@ export function AddHabitScreen() {
   const { addHabit } = useHabitStore();
 
   const handleSelectHabit = (habit: CommonHabit) => {
-    addHabit({
-      id: Date.now().toString(),
-      name: habit.name,
-      icon: habit.icon,
-      color: habit.color,
-      frequency: { type: 'daily' },
-      createdAt: new Date().toISOString(),
+    (navigation as any).navigate('NewHabit', {
+      presetName: habit.name,
+      presetIcon: habit.icon,
+      presetColor: habit.color,
     });
-    navigation.goBack();
   };
 
   return (
@@ -107,6 +103,7 @@ export function AddHabitScreen() {
       <View className="px-5 pb-4">
         <TouchableOpacity
           activeOpacity={0.7}
+          onPress={() => (navigation as any).navigate('NewHabit', {})}
           className="flex-row items-center justify-center py-4 rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark"
         >
           <Ionicons

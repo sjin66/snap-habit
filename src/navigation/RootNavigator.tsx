@@ -6,6 +6,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { TodayScreen } from '../screens/TodayScreen';
 import { AddHabitScreen } from '../screens/AddHabitScreen';
+import { HabitDetailScreen } from '../screens/HabitDetailScreen';
+import { NewHabitScreen } from '../screens/NewHabitScreen';
 
 // Placeholder screens
 const StatsScreen = () => (
@@ -34,6 +36,12 @@ export type RootTabParamList = {
 export type RootStackParamList = {
   Tabs: undefined;
   AddHabit: undefined;
+  NewHabit: {
+    presetName?: string;
+    presetIcon?: string;
+    presetColor?: string;
+  };
+  HabitDetail: { habitId: string };
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -142,6 +150,14 @@ export function RootNavigator({ colorScheme }: Props) {
           name="AddHabit"
           component={AddHabitScreen}
           options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="NewHabit"
+          component={NewHabitScreen}
+        />
+        <Stack.Screen
+          name="HabitDetail"
+          component={HabitDetailScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>

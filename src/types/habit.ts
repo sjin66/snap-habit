@@ -2,9 +2,11 @@
 export interface Habit {
   id: string;
   name: string;
-  icon: string;           // emoji 或 SF Symbol 名称
+  icon: string;           // Ionicons name
   color: string;          // hex color
+  note?: string;          // 备注
   frequency: FrequencyConfig;
+  dailyTarget: number;    // 每日目标次数
   reminderTime?: string;  // "HH:mm"
   createdAt: string;      // ISO date
   archivedAt?: string;

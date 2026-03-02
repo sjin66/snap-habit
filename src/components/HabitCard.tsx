@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import type { TodayHabitItem } from '../types/habit';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 
 export function HabitCard({ item, streak, onCheckIn }: Props) {
   const scale = React.useRef(new Animated.Value(1)).current;
+  const navigation = useNavigation<any>();
 
   const handlePress = useCallback(() => {
     if (item.isCompleted) return;
@@ -22,6 +24,10 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
   }, [item.isCompleted, item.habitId, onCheckIn, scale]);
 
   return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => navigation.navigate('HabitDetail', { habitId: item.habitId })}
+    >
     <Animated.View
       className={`
         flex-row items-center rounded-2xl py-4 px-4 mx-5 shadow-sm border
@@ -89,5 +95,6 @@ export function HabitCard({ item, streak, onCheckIn }: Props) {
         </Text>
       </TouchableOpacity>
     </Animated.View>
+    </TouchableOpacity>
   );
 }
