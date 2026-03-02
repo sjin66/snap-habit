@@ -9,6 +9,7 @@ import {
   ListRenderItemInfo,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { ProgressCard } from '../components/ProgressCard';
 import { HabitCard } from '../components/HabitCard';
 import { useHabitStore } from '../stores/habitStore';
@@ -38,6 +39,7 @@ const MOCK_STREAKS: Record<string, number> = {
 
 export function TodayScreen() {
   const { habits, setHabits, checkIn, getTodayItems } = useHabitStore();
+  const navigation = useNavigation<any>();
   const dateStr = formatDate().full;
   const colorScheme = useColorScheme();
 
@@ -128,6 +130,7 @@ export function TodayScreen() {
                 </Text>
               </View>
               <TouchableOpacity
+                onPress={() => navigation.navigate('AddHabit')}
                 activeOpacity={0.7}
                 className="w-11 h-11 rounded-full bg-secondary dark:bg-secondary-dark justify-center items-center shadow-sm mt-1 border border-border dark:border-border-dark"
               >
