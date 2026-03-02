@@ -16,17 +16,19 @@ interface CommonHabit {
   category: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
+  goal: number;
+  unit: string;
 }
 
 const COMMON_HABITS: CommonHabit[] = [
-  { name: 'Hydration',   category: 'HEALTH',      icon: 'water',           color: '#3B82F6' },
-  { name: 'Reading',     category: 'MINDSET',      icon: 'book',            color: '#8B5CF6' },
-  { name: 'Meditation',  category: 'MINDFULNESS',  icon: 'leaf',            color: '#22C55E' },
-  { name: 'Exercise',    category: 'FITNESS',       icon: 'fitness',         color: '#EF4444' },
-  { name: 'Journaling',  category: 'GROWTH',        icon: 'pencil',          color: '#F59E0B' },
-  { name: 'Deep Work',   category: 'FOCUS',         icon: 'flash',           color: '#F97316' },
-  { name: 'Sleep Early', category: 'HEALTH',        icon: 'moon',            color: '#6366F1' },
-  { name: 'Nutrition',   category: 'HEALTH',        icon: 'nutrition',       color: '#14B8A6' },
+  { name: 'Hydration',   category: 'HEALTH',      icon: 'water',           color: '#3B82F6', goal: 8,  unit: 'glasses' },
+  { name: 'Reading',     category: 'MINDSET',      icon: 'book',            color: '#8B5CF6', goal: 30, unit: 'min' },
+  { name: 'Meditation',  category: 'MINDFULNESS',  icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
+  { name: 'Exercise',    category: 'FITNESS',       icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },
+  { name: 'Journaling',  category: 'GROWTH',        icon: 'pencil',          color: '#F59E0B', goal: 1,  unit: 'times' },
+  { name: 'Deep Work',   category: 'FOCUS',         icon: 'flash',           color: '#F97316', goal: 2,  unit: 'hours' },
+  { name: 'Sleep Early', category: 'HEALTH',        icon: 'moon',            color: '#6366F1', goal: 1,  unit: 'times' },
+  { name: 'Nutrition',   category: 'HEALTH',        icon: 'nutrition',       color: '#14B8A6', goal: 3,  unit: 'times' },
 ];
 
 export function AddHabitScreen() {
@@ -40,6 +42,8 @@ export function AddHabitScreen() {
       presetName: habit.name,
       presetIcon: habit.icon,
       presetColor: habit.color,
+      presetGoal: habit.goal,
+      presetUnit: habit.unit,
     });
   };
 

@@ -26,6 +26,7 @@ export function initDatabase(): void {
       frequency_days_of_week TEXT,
       frequency_times_per_week INTEGER,
       daily_target INTEGER NOT NULL DEFAULT 1,
+      unit TEXT NOT NULL DEFAULT 'times',
       reminder_time TEXT,
       created_at TEXT NOT NULL,
       archived_at TEXT
@@ -50,6 +51,25 @@ export function initDatabase(): void {
   database.execSync(`
     CREATE INDEX IF NOT EXISTS idx_entries_date ON entries(date);
   `);
+
+  // ─── Migrations: add columns that may be missing from older schemas ───
+  const columns = database.getAllSync<{ name: string }>(
+    `PRAGMA table_info(habits)`
+  );
+  const colNames = columns.map((c) => c.name);
+
+  if (!colNames.includes('note')) {
+    database.execSync(`ALTER TABLE habits ADD COLUMN note TEXT`);
+  }
+  if (!colNames.includes('daily_target')) {
+    database.execSync(`ALTER TABLE habits ADD COLUMN daily_target INTEGER NOT NULL DEFAULT 1`);
+  }
+  if (!colNames.includes('reminder_time')) {
+    database.execSync(`ALTER TABLE habits ADD COLUMN reminder_time TEXT`);
+  }
+  if (!colNames.includes('unit')) {
+    database.execSync(`ALTER TABLE habits ADD COLUMN unit TEXT NOT NULL DEFAULT 'times'`);
+  }
 }
 
 // ─── Habits CRUD ────────────────────────────────────────
@@ -67,8 +87,8 @@ export function getAllHabits(): Habit[] {
 export function insertHabit(habit: Habit): void {
   const database = getDatabase();
   database.runSync(
-    `INSERT INTO habits (id, name, icon, color, note, frequency_type, frequency_days_of_week, frequency_times_per_week, daily_target, reminder_time, created_at, archived_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO habits (id, name, icon, color, note, frequency_type, frequency_days_of_week, frequency_times_per_week, daily_target, unit, reminder_time, created_at, archived_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     habit.id,
     habit.name,
     habit.icon,
@@ -78,6 +98,7 @@ export function insertHabit(habit: Habit): void {
     habit.frequency.daysOfWeek ? JSON.stringify(habit.frequency.daysOfWeek) : null,
     habit.frequency.timesPerWeek ?? null,
     habit.dailyTarget ?? 1,
+    habit.unit ?? 'times',
     habit.reminderTime ?? null,
     habit.createdAt,
     habit.archivedAt ?? null,
@@ -95,6 +116,7 @@ export function updateHabitInDB(id: string, updates: Partial<Habit>): void {
   if (updates.color !== undefined) { fields.push('color = ?'); values.push(updates.color); }
   if (updates.note !== undefined) { fields.push('note = ?'); values.push(updates.note); }
   if (updates.dailyTarget !== undefined) { fields.push('daily_target = ?'); values.push(updates.dailyTarget); }
+  if (updates.unit !== undefined) { fields.push('unit = ?'); values.push(updates.unit); }
   if (updates.reminderTime !== undefined) { fields.push('reminder_time = ?'); values.push(updates.reminderTime); }
   if (updates.archivedAt !== undefined) { fields.push('archived_at = ?'); values.push(updates.archivedAt); }
   if (updates.frequency) {
@@ -191,6 +213,7 @@ function rowToHabit(row: any): Habit {
     note: row.note ?? undefined,
     frequency,
     dailyTarget: row.daily_target ?? 1,
+    unit: row.unit ?? 'times',
     reminderTime: row.reminder_time ?? undefined,
     createdAt: row.created_at,
     archivedAt: row.archived_at ?? undefined,

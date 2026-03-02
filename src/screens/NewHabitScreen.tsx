@@ -31,6 +31,19 @@ const HABIT_COLORS = [
   '#0EA5E9', '#A855F7', '#D946EF', '#10B981',
 ];
 
+// ─── 单位列表 ──────────────────────────────────────────
+const UNITS = [
+  { key: 'times', label: 'times', singular: 'time' },
+  { key: 'min', label: 'min', singular: 'min' },
+  { key: 'hours', label: 'hours', singular: 'hour' },
+  { key: 'pages', label: 'pages', singular: 'page' },
+  { key: 'glasses', label: 'glasses', singular: 'glass' },
+  { key: 'steps', label: 'steps', singular: 'step' },
+  { key: 'km', label: 'km', singular: 'km' },
+  { key: 'ml', label: 'ml', singular: 'ml' },
+  { key: 'cal', label: 'cal', singular: 'cal' },
+];
+
 // ─── 星期几常量 ─────────────────────────────────────────
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const WEEKDAY_VALUES = [1, 2, 3, 4, 5, 6, 7];
@@ -40,6 +53,8 @@ type NewHabitRouteParams = {
     presetName?: string;
     presetIcon?: string;
     presetColor?: string;
+    presetGoal?: number;
+    presetUnit?: string;
   };
 };
 
@@ -56,7 +71,8 @@ export function NewHabitScreen() {
   const [note, setNote] = useState('');
   const [selectedIcon, setSelectedIcon] = useState<string>(preset.presetIcon ?? ICONS[0]);
   const [selectedColor, setSelectedColor] = useState(preset.presetColor ?? HABIT_COLORS[0]);
-  const [dailyTarget, setDailyTarget] = useState(1);
+  const [dailyTarget, setDailyTarget] = useState(preset.presetGoal ?? 1);
+  const [unit, setUnit] = useState(preset.presetUnit ?? 'times');
   const [freqType, setFreqType] = useState<'daily' | 'weekly'>('daily');
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [reminderEnabled, setReminderEnabled] = useState(false);
@@ -82,6 +98,7 @@ export function NewHabitScreen() {
       note: note.trim() || undefined,
       frequency,
       dailyTarget,
+      unit,
       createdAt: new Date().toISOString(),
     });
     navigation.popToTop();
@@ -221,7 +238,10 @@ export function NewHabitScreen() {
                 {dailyTarget}
               </Text>
               <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
-                {dailyTarget === 1 ? 'time' : 'times'}
+                {(() => {
+                  const u = UNITS.find((u) => u.key === unit)!;
+                  return dailyTarget === 1 ? u.singular : u.label;
+                })()}
               </Text>
             </View>
             <TouchableOpacity
@@ -231,6 +251,34 @@ export function NewHabitScreen() {
               <Ionicons name="add" size={22} color={isDark ? '#A3A3A3' : '#737373'} />
             </TouchableOpacity>
           </View>
+
+          {/* Unit selector */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+            <View className="flex-row gap-2">
+              {UNITS.map((u) => {
+                const isSelected = u.key === unit;
+                return (
+                  <TouchableOpacity
+                    key={u.key}
+                    onPress={() => setUnit(u.key)}
+                    className={`px-3.5 py-1.5 rounded-full ${
+                      isSelected
+                        ? 'bg-primary dark:bg-primary-dark'
+                        : 'border border-border dark:border-border-dark'
+                    }`}
+                  >
+                    <Text className={`text-sm font-medium ${
+                      isSelected
+                        ? 'text-primary-foreground dark:text-primary-foreground-dark'
+                        : 'text-foreground dark:text-foreground-dark'
+                    }`}>
+                      {u.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
 
           {/* Daily / Weekly toggle */}
           <View className="flex-row rounded-xl mb-4 gap-3">

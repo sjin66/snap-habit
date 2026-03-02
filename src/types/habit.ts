@@ -7,6 +7,7 @@ export interface Habit {
   note?: string;          // 备注
   frequency: FrequencyConfig;
   dailyTarget: number;    // 每日目标次数
+  unit: string;           // 单位 (times, min, hours, pages, etc.)
   reminderTime?: string;  // "HH:mm"
   createdAt: string;      // ISO date
   archivedAt?: string;
