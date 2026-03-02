@@ -21,7 +21,7 @@ interface CommonHabit {
 }
 
 const COMMON_HABITS: CommonHabit[] = [
-  { name: 'Hydration',   category: 'HEALTH',      icon: 'water',           color: '#3B82F6', goal: 8,  unit: 'glasses' },
+  { name: 'Hydration',   category: 'HEALTH',      icon: 'water',           color: '#3B82F6', goal: 2000, unit: 'ml' },
   { name: 'Reading',     category: 'MINDSET',      icon: 'book',            color: '#8B5CF6', goal: 30, unit: 'min' },
   { name: 'Meditation',  category: 'MINDFULNESS',  icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
   { name: 'Exercise',    category: 'FITNESS',       icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },

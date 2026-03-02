@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   Switch,
   useColorScheme,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useHabitStore } from '../stores/habitStore';
@@ -72,10 +71,48 @@ export function NewHabitScreen() {
   const [selectedIcon, setSelectedIcon] = useState<string>(preset.presetIcon ?? ICONS[0]);
   const [selectedColor, setSelectedColor] = useState(preset.presetColor ?? HABIT_COLORS[0]);
   const [dailyTarget, setDailyTarget] = useState(preset.presetGoal ?? 1);
+  const [targetText, setTargetText] = useState(String(preset.presetGoal ?? 1));
   const [unit, setUnit] = useState(preset.presetUnit ?? 'times');
   const [freqType, setFreqType] = useState<'daily' | 'weekly'>('daily');
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [reminderEnabled, setReminderEnabled] = useState(false);
+
+  const iconScrollRef = useRef<ScrollView>(null);
+  const colorScrollRef = useRef<ScrollView>(null);
+  const unitScrollRef = useRef<ScrollView>(null);
+  const iconScrollWidth = useRef(0);
+  const colorScrollWidth = useRef(0);
+  const unitScrollWidth = useRef(0);
+
+  // 自动滚动到预设图标/颜色位置（居中显示）
+  useEffect(() => {
+    const ICON_ITEM_WIDTH = 44 + 12; // w-11 (44) + mr-3 (12)
+    const iconIndex = ICONS.indexOf(selectedIcon as any);
+    if (iconIndex > 0) {
+      setTimeout(() => {
+        const offset = Math.max(0, iconIndex * ICON_ITEM_WIDTH - (iconScrollWidth.current - ICON_ITEM_WIDTH) / 2);
+        iconScrollRef.current?.scrollTo({ x: offset, animated: false });
+      }, 100);
+    }
+
+    const COLOR_ITEM_WIDTH = 36 + 12; // w-9 (36) + mr-3 (12)
+    const colorIndex = HABIT_COLORS.indexOf(selectedColor);
+    if (colorIndex > 0) {
+      setTimeout(() => {
+        const offset = Math.max(0, colorIndex * COLOR_ITEM_WIDTH - (colorScrollWidth.current - COLOR_ITEM_WIDTH) / 2);
+        colorScrollRef.current?.scrollTo({ x: offset, animated: false });
+      }, 100);
+    }
+
+    const UNIT_ITEM_WIDTH = 60 + 8; // ~px-3.5 (avg ~60) + gap-2 (8)
+    const unitIndex = UNITS.findIndex((u) => u.key === unit);
+    if (unitIndex > 0) {
+      setTimeout(() => {
+        const offset = Math.max(0, unitIndex * UNIT_ITEM_WIDTH - (unitScrollWidth.current - UNIT_ITEM_WIDTH) / 2);
+        unitScrollRef.current?.scrollTo({ x: offset, animated: false });
+      }, 100);
+    }
+  }, []);
 
   const toggleDay = (day: number) => {
     setSelectedDays((prev) =>
@@ -105,7 +142,7 @@ export function NewHabitScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-page-bg dark:bg-page-bg-dark" edges={['top']}>
+    <View className="flex-1 bg-page-bg dark:bg-page-bg-dark">
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 py-3 border-b border-border dark:border-border-dark">
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={12}>
@@ -161,9 +198,11 @@ export function NewHabitScreen() {
           {/* Icon */}
           <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">Icon</Text>
           <ScrollView
+            ref={iconScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             className="mb-4"
+            onLayout={(e) => { iconScrollWidth.current = e.nativeEvent.layout.width; }}
           >
             <View className="flex-row">
               {ICONS.map((icon) => {
@@ -194,7 +233,12 @@ export function NewHabitScreen() {
 
           {/* Color */}
           <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">Color</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <ScrollView
+            ref={colorScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            onLayout={(e) => { colorScrollWidth.current = e.nativeEvent.layout.width; }}
+          >
             <View className="flex-row">
               {HABIT_COLORS.map((color) => {
                 const isSelected = color === selectedColor;
@@ -228,15 +272,35 @@ export function NewHabitScreen() {
           </Text>
           <View className="flex-row items-center justify-center mb-5">
             <TouchableOpacity
-              onPress={() => setDailyTarget(Math.max(1, dailyTarget - 1))}
+              onPress={() => {
+                const next = Math.max(1, dailyTarget - 1);
+                setDailyTarget(next);
+                setTargetText(String(next));
+              }}
               className="w-11 h-11 rounded-full items-center justify-center bg-section-bg dark:bg-section-bg-dark"
             >
               <Ionicons name="remove" size={22} color={isDark ? '#A3A3A3' : '#737373'} />
             </TouchableOpacity>
             <View className="items-center mx-6">
-              <Text className="text-4xl font-bold text-foreground dark:text-foreground-dark">
-                {dailyTarget}
-              </Text>
+              <TextInput
+                value={targetText}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/[^0-9]/g, '');
+                  setTargetText(cleaned);
+                  const num = parseInt(cleaned, 10);
+                  if (!isNaN(num) && num > 0) setDailyTarget(num);
+                }}
+                onBlur={() => {
+                  if (!targetText || parseInt(targetText, 10) <= 0) {
+                    setDailyTarget(1);
+                    setTargetText('1');
+                  }
+                }}
+                keyboardType="number-pad"
+                className="text-4xl font-bold text-foreground dark:text-foreground-dark text-center"
+                style={{ minWidth: Math.max(48, targetText.length * 24) }}
+                selectTextOnFocus
+              />
               <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
                 {(() => {
                   const u = UNITS.find((u) => u.key === unit)!;
@@ -245,7 +309,11 @@ export function NewHabitScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              onPress={() => setDailyTarget(dailyTarget + 1)}
+              onPress={() => {
+                const next = dailyTarget + 1;
+                setDailyTarget(next);
+                setTargetText(String(next));
+              }}
               className="w-11 h-11 rounded-full items-center justify-center bg-section-bg dark:bg-section-bg-dark"
             >
               <Ionicons name="add" size={22} color={isDark ? '#A3A3A3' : '#737373'} />
@@ -253,7 +321,13 @@ export function NewHabitScreen() {
           </View>
 
           {/* Unit selector */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+          <ScrollView
+            ref={unitScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mb-4"
+            onLayout={(e) => { unitScrollWidth.current = e.nativeEvent.layout.width; }}
+          >
             <View className="flex-row gap-2">
               {UNITS.map((u) => {
                 const isSelected = u.key === unit;
@@ -378,6 +452,6 @@ export function NewHabitScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
