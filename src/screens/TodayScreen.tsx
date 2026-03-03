@@ -1,15 +1,17 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StatusBar,
   useColorScheme,
-  ListRenderItemInfo,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import DraggableFlatList, {
+  RenderItemParams,
+  ScaleDecorator,
+} from 'react-native-draggable-flatlist';
 import { ProgressCard } from '../components/ProgressCard';
 import { HabitCard } from '../components/HabitCard';
 import { useHabitStore } from '../stores/habitStore';
@@ -30,7 +32,7 @@ function formatDate(): { weekday: string; full: string } {
 }
 
 export function TodayScreen() {
-  const { habits, setHabits, checkIn, getTodayItems } = useHabitStore();
+  const { habits, setHabits, checkIn, uncheckIn, deleteHabit, reorderHabits, getTodayItems } = useHabitStore();
   const navigation = useNavigation<any>();
   const dateStr = formatDate().full;
   const colorScheme = useColorScheme();
@@ -83,26 +85,84 @@ export function TodayScreen() {
     }
   }, []);
 
+  const [isJiggling, setIsJiggling] = useState(false);
+
   const todayItems = getTodayItems();
   const completed = todayItems.filter((h) => h.isCompleted).length;
   const total = todayItems.length;
 
+  const handleLongPress = useCallback(() => {
+    setIsJiggling(true);
+  }, []);
+
   const handleCheckIn = useCallback(
     (habitId: string) => {
-      checkIn(habitId);
+      const item = todayItems.find((h) => h.habitId === habitId);
+      if (item?.isCompleted) {
+        uncheckIn(habitId);
+      } else {
+        checkIn(habitId);
+      }
     },
-    [checkIn],
+    [checkIn, uncheckIn, todayItems],
+  );
+
+  const handleDelete = useCallback(
+    (habitId: string) => {
+      deleteHabit(habitId);
+    },
+    [deleteHabit],
+  );
+
+  const handleEdit = useCallback(
+    (habitId: string) => {
+      const habit = habits.find((h) => h.id === habitId);
+      if (!habit) return;
+      navigation.navigate('NewHabit', {
+        editHabitId: habit.id,
+        presetName: habit.name,
+        presetIcon: habit.icon,
+        presetColor: habit.color,
+        presetGoal: habit.dailyTarget,
+        presetUnit: habit.unit,
+      });
+    },
+    [navigation, habits],
   );
 
   const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<TodayHabitItem>) => (
-      <HabitCard
-        item={item}
-        index={index}
-        onCheckIn={handleCheckIn}
-      />
-    ),
-    [handleCheckIn],
+    ({ item, getIndex, drag, isActive }: RenderItemParams<TodayHabitItem>) => {
+      const index = getIndex() ?? 0;
+      return (
+        <ScaleDecorator>
+          <HabitCard
+            item={item}
+            index={index}
+            onCheckIn={handleCheckIn}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            isJiggling={isJiggling}
+            onLongPress={() => {
+              if (!isJiggling) {
+                setIsJiggling(true);
+              } else {
+                drag();
+              }
+            }}
+            onDrag={isJiggling ? drag : undefined}
+            isDragging={isActive}
+          />
+        </ScaleDecorator>
+      );
+    },
+    [handleCheckIn, handleDelete, handleEdit, isJiggling, handleLongPress],
+  );
+
+  const handleDragEnd = useCallback(
+    ({ data }: { data: TodayHabitItem[] }) => {
+      reorderHabits(data.map((d) => d.habitId));
+    },
+    [reorderHabits],
   );
 
   return (
@@ -111,10 +171,12 @@ export function TodayScreen() {
         barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={colorScheme === 'dark' ? '#0A0A0A' : '#FFFFFF'}
       />
-      <FlatList
+      <DraggableFlatList
         data={todayItems}
         keyExtractor={(item) => item.habitId}
         renderItem={renderItem}
+        onDragEnd={handleDragEnd}
+        activationDistance={isJiggling ? 5 : 10000}
         contentContainerStyle={{ paddingBottom: 16 }}
         ItemSeparatorComponent={() => <View className="h-3" />}
         ListHeaderComponent={
@@ -129,15 +191,27 @@ export function TodayScreen() {
                   Today
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('AddHabit')}
-                activeOpacity={0.7}
-                className="w-11 h-11 rounded-full bg-secondary dark:bg-secondary-dark justify-center items-center shadow-sm mt-1 border border-border dark:border-border-dark"
-              >
-                <Text className="text-[22px] text-foreground dark:text-foreground-dark font-light leading-[26px]">
-                  +
-                </Text>
-              </TouchableOpacity>
+              {isJiggling ? (
+                <TouchableOpacity
+                  onPress={() => setIsJiggling(false)}
+                  activeOpacity={0.7}
+                  className="px-4 h-9 rounded-full bg-primary dark:bg-primary-dark justify-center items-center mt-1"
+                >
+                  <Text className="text-[15px] font-semibold text-background dark:text-background-dark">
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('AddHabit')}
+                  activeOpacity={0.7}
+                  className="w-11 h-11 rounded-full bg-secondary dark:bg-secondary-dark justify-center items-center shadow-sm mt-1 border border-border dark:border-border-dark"
+                >
+                  <Text className="text-[22px] text-foreground dark:text-foreground-dark font-light leading-[26px]">
+                    +
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Progress card */}

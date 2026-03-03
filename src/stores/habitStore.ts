@@ -22,6 +22,7 @@ interface HabitState {
   addHabit: (habit: Habit) => void;
   updateHabit: (id: string, updates: Partial<Habit>) => void;
   deleteHabit: (id: string) => void;
+  reorderHabits: (orderedIds: string[]) => void;
   checkIn: (habitId: string) => void;
   uncheckIn: (habitId: string) => void;
   getTodayItems: () => TodayHabitItem[];
@@ -60,6 +61,16 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     set((state) => ({
       habits: state.habits.filter((h) => h.id !== id),
     }));
+  },
+
+  reorderHabits: (orderedIds) => {
+    set((state) => {
+      const habitMap = new Map(state.habits.map((h) => [h.id, h]));
+      const reordered = orderedIds
+        .map((id) => habitMap.get(id))
+        .filter(Boolean) as Habit[];
+      return { habits: reordered };
+    });
   },
 
   checkIn: (habitId) => {

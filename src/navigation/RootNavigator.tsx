@@ -40,6 +40,9 @@ export type RootStackParamList = {
     presetName?: string;
     presetIcon?: string;
     presetColor?: string;
+    presetGoal?: number;
+    presetUnit?: string;
+    editHabitId?: string;
   };
   HabitDetail: { habitId: string };
 };
@@ -154,6 +157,7 @@ export function RootNavigator({ colorScheme }: Props) {
         <Stack.Screen
           name="NewHabit"
           component={NewHabitScreen}
+          options={{ presentation: 'modal' }}
         />
         <Stack.Screen
           name="HabitDetail"

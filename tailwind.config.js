@@ -13,7 +13,7 @@ module.exports = {
         foreground:          { DEFAULT: '#111111',  dark: '#FAFAFA' },
         card:                { DEFAULT: '#F5F5F5',  dark: '#1F1F1F', foreground: '#111111', 'foreground-dark': '#FAFAFA' },
         primary:             { DEFAULT: '#141414',  dark: '#EBEBEB', foreground: '#FAFAFA', 'foreground-dark': '#1F1F1F' },
-        secondary:           { DEFAULT: '#F5F5F5',  dark: '#2F2F2F', foreground: '#141414', 'foreground-dark': '#FAFAFA' },
+        secondary:           { DEFAULT: '#e1e1e1',  dark: '#2F2F2F', foreground: '#141414', 'foreground-dark': '#FAFAFA' },
         muted:               { DEFAULT: '#F5F5F5',  dark: '#2F2F2F', foreground: '#8E8E8E', 'foreground-dark': '#B4B4B4' },
         accent:              { DEFAULT: '#F5F5F5',  dark: '#2F2F2F', foreground: '#141414', 'foreground-dark': '#FAFAFA' },
         destructive:         { DEFAULT: '#DC2626',  dark: '#EF4444', foreground: '#FAFAFA', 'foreground-dark': '#FAFAFA' },
