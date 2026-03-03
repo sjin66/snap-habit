@@ -46,6 +46,8 @@ export function TodayScreen() {
           color: '#FF8C00',
           frequency: { type: 'daily' },
           createdAt: new Date().toISOString(),
+          dailyTarget: 8,
+          unit: 'glasses',
         },
         {
           id: '2',
@@ -54,6 +56,8 @@ export function TodayScreen() {
           color: '#6C63FF',
           frequency: { type: 'daily' },
           createdAt: new Date().toISOString(),
+          dailyTarget: 10,
+          unit: 'minutes',
         },
         {
           id: '3',
@@ -62,6 +66,8 @@ export function TodayScreen() {
           color: '#4CAF50',
           frequency: { type: 'daily' },
           createdAt: new Date().toISOString(),
+          dailyTarget: 30,
+          unit: 'minutes',
         },
         {
           id: '4',
@@ -70,6 +76,8 @@ export function TodayScreen() {
           color: '#4CAF50',
           frequency: { type: 'daily' },
           createdAt: new Date().toISOString(),
+          dailyTarget: 20,
+          unit: 'reps',
         },
       ]);
     }
@@ -87,9 +95,10 @@ export function TodayScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<TodayHabitItem>) => (
+    ({ item, index }: ListRenderItemInfo<TodayHabitItem>) => (
       <HabitCard
         item={item}
+        index={index}
         onCheckIn={handleCheckIn}
       />
     ),

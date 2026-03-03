@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   useColorScheme,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -77,8 +78,8 @@ export function AddHabitScreen() {
 
         {/* Grid */}
         <View className="flex-row flex-wrap px-4">
-          {COMMON_HABITS.map((habit) => (
-            <View key={habit.name} className="w-1/2 p-1.5">
+          {COMMON_HABITS.map((habit, index) => (
+            <Animated.View key={habit.name} entering={FadeInDown.delay(index * 80).duration(400)} className="w-1/2 p-1.5">
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => handleSelectHabit(habit)}
@@ -98,7 +99,7 @@ export function AddHabitScreen() {
                   {habit.category}
                 </Text>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           ))}
         </View>
       </ScrollView>

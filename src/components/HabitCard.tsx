@@ -1,15 +1,17 @@
 import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import ReAnimated, { FadeInDown } from 'react-native-reanimated';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { TodayHabitItem } from '../types/habit';
 
 interface Props {
   item: TodayHabitItem;
+  index: number;
   onCheckIn: (habitId: string) => void;
 }
 
-export function HabitCard({ item, onCheckIn }: Props) {
+export function HabitCard({ item, index, onCheckIn }: Props) {
   const scale = React.useRef(new Animated.Value(1)).current;
   const navigation = useNavigation<any>();
 
@@ -23,19 +25,18 @@ export function HabitCard({ item, onCheckIn }: Props) {
   }, [item.isCompleted, item.habitId, onCheckIn, scale]);
 
   return (
+    <ReAnimated.View entering={FadeInDown.delay(index * 80).duration(400)}>
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() => navigation.navigate('HabitDetail', { habitId: item.habitId })}
     >
     <Animated.View
-      className={`
-        flex-row items-center rounded-2xl py-4 px-4 mx-5 shadow-sm border
-        ${item.isCompleted
-          ? 'bg-secondary dark:bg-secondary-dark border-border dark:border-border-dark'
-          : 'bg-card dark:bg-card-dark border-border dark:border-border-dark'
-        }
-      `}
-      style={{ transform: [{ scale }] }}
+      className="flex-row items-center rounded-2xl py-4 px-4 mx-5 shadow-sm border"
+      style={{
+        transform: [{ scale }],
+        backgroundColor: item.color + (item.isCompleted ? '20' : '15'),
+        borderColor: item.color + '30',
+      }}
     >
       {/* Icon */}
       <View
@@ -48,24 +49,18 @@ export function HabitCard({ item, onCheckIn }: Props) {
       {/* Info */}
       <View className="flex-1">
         <Text
-          className={`text-base font-semibold mb-1 ${
-            item.isCompleted
-              ? 'text-muted-foreground dark:text-muted-foreground-dark'
-              : 'text-foreground dark:text-foreground-dark'
-          }`}
+          className="text-base font-semibold mb-1 text-foreground dark:text-foreground-dark"
         >
           {item.name}
         </Text>
         <View className="flex-row items-center">
-          <Text className="text-[13px] text-muted-foreground dark:text-muted-foreground-dark">
+          <Text className="text-[13px] text-foreground dark:text-foreground-dark">
             {item.dailyTarget} {item.unit}
           </Text>
-          <Text className="text-[13px] text-muted-foreground dark:text-muted-foreground-dark"> · </Text>
+          <Text className="text-[13px] text-foreground dark:text-foreground-dark"> · </Text>
           <Text
-            className={`text-[13px] ${
-              item.isCompleted
-                ? 'text-foreground dark:text-foreground-dark font-semibold'
-                : 'text-muted-foreground dark:text-muted-foreground-dark'
+            className={`text-[13px] text-foreground dark:text-foreground-dark ${
+              item.isCompleted ? 'font-semibold' : ''
             }`}
           >
             {item.isCompleted ? 'Done' : 'Not done'}
@@ -95,5 +90,6 @@ export function HabitCard({ item, onCheckIn }: Props) {
       </TouchableOpacity>
     </Animated.View>
     </TouchableOpacity>
+    </ReAnimated.View>
   );
 }
