@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, Animated, useColorScheme } from 'react-na
 import ReAnimated, {
   FadeInDown,
   FadeOut,
-  LinearTransition,
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
@@ -42,10 +41,26 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
   const [cardHeight, setCardHeight] = useState(60);
   const btnWidth = Math.round(cardHeight * 0.6);
 
+  // Delete animation values
+  const deleteAnim = useRef(new Animated.Value(1)).current; // 1=visible, 0=gone
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const triggerDelete = useCallback(() => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    Animated.timing(deleteAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: false, // height animation needs native driver off
+    }).start(() => {
+      onDelete?.(item.habitId);
+    });
+  }, [isDeleting, deleteAnim, onDelete, item.habitId]);
+
   // Jiggle animation — randomize per card for a natural iOS feel
   const jiggleRotation = useSharedValue(0);
   const angleRef = useRef(1.2 + Math.random() * 1.2);   // 1.2°–2.4°
-  const durationRef = useRef(60 + Math.random() * 50);   // 60–110ms per step
+  const durationRef = useRef(120 + Math.random() * 80);   // 120–200ms per step
 
   useEffect(() => {
     if (isJiggling) {
@@ -124,7 +139,7 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
               activeOpacity={0.7}
               onPress={() => {
                 swipeableRef.current?.close();
-                onDelete?.(item.habitId);
+                triggerDelete();
               }}
               className="rounded-xl justify-center items-center"
               style={{ width: btnWidth, height: cardHeight, backgroundColor: '#EF444415', borderWidth: 1, borderColor: '#EF444430' }}
@@ -135,15 +150,33 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
         </Animated.View>
       );
     },
-    [item.habitId, onDelete, onEdit, cardHeight],
+    [item.habitId, triggerDelete, onEdit, cardHeight],
   );
 
   return (
+    <Animated.View
+      style={{
+        opacity: deleteAnim,
+        maxHeight: deleteAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 200],
+        }),
+        marginBottom: deleteAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, 12],
+        }),
+        transform: [{
+          scale: deleteAnim.interpolate({
+            inputRange: [0, 0.5, 1],
+            outputRange: [0.8, 0.95, 1],
+          }),
+        }],
+        overflow: isDeleting ? 'hidden' as const : 'visible' as const,
+        marginHorizontal: 20,
+      }}
+    >
     <ReAnimated.View
-      className="mx-5"
       entering={FadeInDown.delay(index * 80).duration(400)}
-      exiting={FadeOut.duration(300)}
-      layout={LinearTransition.springify()}
     >
     <ReAnimated.View style={[jiggleStyle, isDragging && { opacity: 0.85 }]}>
     <Swipeable
@@ -242,7 +275,7 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
         }}
       >
         <TouchableOpacity
-          onPress={() => onDelete?.(item.habitId)}
+          onPress={() => triggerDelete()}
           activeOpacity={0.7}
           style={{
             width: 24,
@@ -263,5 +296,6 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
     )}
     </ReAnimated.View>
     </ReAnimated.View>
+    </Animated.View>
   );
 }

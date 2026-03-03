@@ -177,8 +177,7 @@ export function TodayScreen() {
         renderItem={renderItem}
         onDragEnd={handleDragEnd}
         activationDistance={isJiggling ? 5 : 10000}
-        contentContainerStyle={{ paddingBottom: 16 }}
-        ItemSeparatorComponent={() => <View className="h-3" />}
+        containerStyle={{ height: '100%' }}
         ListHeaderComponent={
           <>
             {/* Header */}
