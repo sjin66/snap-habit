@@ -8,13 +8,9 @@ import { TodayScreen } from '../screens/TodayScreen';
 import { AddHabitScreen } from '../screens/AddHabitScreen';
 import { HabitDetailScreen } from '../screens/HabitDetailScreen';
 import { NewHabitScreen } from '../screens/NewHabitScreen';
+import { StatsScreen } from '../screens/StatsScreen';
 
 // Placeholder screens
-const StatsScreen = () => (
-  <View className="flex-1 justify-center items-center bg-background dark:bg-background-dark">
-    <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">Stats (coming soon)</Text>
-  </View>
-);
 const DiscoverScreen = () => (
   <View className="flex-1 justify-center items-center bg-background dark:bg-background-dark">
     <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">Discover (coming soon)</Text>

@@ -178,6 +178,17 @@ export function getEntriesByHabitAndRange(
   return rows.map(rowToEntry);
 }
 
+/** 获取日期范围内所有打卡记录 */
+export function getEntriesInRange(startDate: string, endDate: string): HabitEntry[] {
+  const database = getDatabase();
+  const rows = database.getAllSync<any>(
+    'SELECT * FROM entries WHERE date >= ? AND date <= ? ORDER BY date ASC',
+    startDate,
+    endDate,
+  );
+  return rows.map(rowToEntry);
+}
+
 /** 删除打卡记录（撤销） */
 export function deleteEntry(id: string): void {
   const database = getDatabase();
