@@ -32,58 +32,10 @@ function formatDate(): { weekday: string; full: string } {
 }
 
 export function TodayScreen() {
-  const { habits, setHabits, checkIn, uncheckIn, deleteHabit, reorderHabits, getTodayItems } = useHabitStore();
+  const { habits, checkIn, uncheckIn, deleteHabit, reorderHabits, getTodayItems } = useHabitStore();
   const navigation = useNavigation<any>();
   const dateStr = formatDate().full;
   const colorScheme = useColorScheme();
-
-  // Seed mock data on first render
-  useEffect(() => {
-    if (habits.length === 0) {
-      setHabits([
-        {
-          id: '1',
-          name: 'Drink Water',
-          icon: 'water',
-          color: '#FF8C00',
-          frequency: { type: 'daily' },
-          createdAt: new Date().toISOString(),
-          dailyTarget: 8,
-          unit: 'glasses',
-        },
-        {
-          id: '2',
-          name: 'Meditation',
-          icon: 'leaf',
-          color: '#6C63FF',
-          frequency: { type: 'daily' },
-          createdAt: new Date().toISOString(),
-          dailyTarget: 10,
-          unit: 'minutes',
-        },
-        {
-          id: '3',
-          name: 'Reading',
-          icon: 'book',
-          color: '#4CAF50',
-          frequency: { type: 'daily' },
-          createdAt: new Date().toISOString(),
-          dailyTarget: 30,
-          unit: 'minutes',
-        },
-        {
-          id: '4',
-          name: 'Push Ups',
-          icon: 'fitness',
-          color: '#4CAF50',
-          frequency: { type: 'daily' },
-          createdAt: new Date().toISOString(),
-          dailyTarget: 20,
-          unit: 'reps',
-        },
-      ]);
-    }
-  }, []);
 
   const [isJiggling, setIsJiggling] = useState(false);
 

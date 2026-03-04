@@ -46,10 +46,10 @@ export type RootStackParamList = {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-function TabIcon({ icon, label, focused }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; focused: boolean }) {
+function TabIcon({ icon, label, focused, isDark }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; focused: boolean; isDark?: boolean }) {
   return (
     <View className="items-center justify-center">
-      <Ionicons name={icon} size={24} color={focused ? '#171717' : '#A3A3A3'} />
+      <Ionicons name={icon} size={24} color={focused ? (isDark ? '#EBEBEB' : '#141414') : '#A3A3A3'} />
     </View>
   );
 }
@@ -101,7 +101,7 @@ function TabsNavigator({ isDark }: { isDark: boolean }) {
         component={TodayScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="checkmark-circle" label="TODAY" focused={focused} />
+            <TabIcon icon="home" label="TODAY" focused={focused} isDark={isDark} />
           ),
         }}
       />
@@ -110,7 +110,7 @@ function TabsNavigator({ isDark }: { isDark: boolean }) {
         component={StatsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="bar-chart" label="STATS" focused={focused} />
+            <TabIcon icon="bar-chart" label="STATS" focused={focused} isDark={isDark} />
           ),
         }}
       />
@@ -119,7 +119,7 @@ function TabsNavigator({ isDark }: { isDark: boolean }) {
         component={DiscoverScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="compass" label="DISCOVER" focused={focused} />
+            <TabIcon icon="compass" label="DISCOVER" focused={focused} isDark={isDark} />
           ),
         }}
       />
@@ -128,7 +128,7 @@ function TabsNavigator({ isDark }: { isDark: boolean }) {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="person" label="PROFILE" focused={focused} />
+            <TabIcon icon="person" label="PROFILE" focused={focused} isDark={isDark} />
           ),
         }}
       />

@@ -12,18 +12,31 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Svg, { Circle } from 'react-native-svg';
 import { useHabitStore } from '../stores/habitStore';
+import { getEntriesByHabitAndRange } from '../services/database';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type DetailRoute = RouteProp<RootStackParamList, 'HabitDetail'>;
 
-// Generate mock history for last 14 days
-function generateMockHistory(habitId: string): ('done' | 'missed' | 'skip')[] {
-  const seed = habitId.charCodeAt(0) + habitId.length;
+function formatDate(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
+function daysAgo(n: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+}
+
+/** Build real 14-day history from DB entries */
+function buildHistory(habitId: string): ('done' | 'missed')[] {
+  const today = formatDate(new Date());
+  const start = formatDate(daysAgo(13));
+  const entries = getEntriesByHabitAndRange(habitId, start, today);
+  const completedDates = new Set(entries.map((e) => e.date));
+
   return Array.from({ length: 14 }, (_, i) => {
-    const v = (seed * (i + 1) * 7) % 10;
-    if (v < 7) return 'done';
-    if (v < 9) return 'missed';
-    return 'skip';
+    const dateStr = formatDate(daysAgo(13 - i));
+    return completedDates.has(dateStr) ? 'done' : 'missed';
   });
 }
 
@@ -96,18 +109,33 @@ export function HabitDetailScreen() {
   const { habits, todayEntries, checkIn } = useHabitStore();
   const habit = habits.find((h) => h.id === habitId);
 
-  // Mock data
+  // Real data from DB
+  const history = useMemo(() => buildHistory(habitId), [habitId, todayEntries]);
+
   const streak = useMemo(() => {
-    const seed = habitId.charCodeAt(0);
-    return (seed % 20) + 3;
-  }, [habitId]);
+    // Count consecutive days completed going backward from today
+    let count = 0;
+    for (let i = 0; i < 365; i++) {
+      const dateStr = formatDate(daysAgo(i));
+      const entries = getEntriesByHabitAndRange(habitId, dateStr, dateStr);
+      if (entries.length > 0) {
+        count++;
+      } else if (i > 0) {
+        break;
+      } else {
+        // Today not yet done — check from yesterday
+        continue;
+      }
+    }
+    return count;
+  }, [habitId, todayEntries]);
 
   const totalCompletions = useMemo(() => {
-    const seed = habitId.charCodeAt(0);
-    return (seed % 100) + 50;
-  }, [habitId]);
+    // All-time completions for this habit
+    const entries = getEntriesByHabitAndRange(habitId, '2000-01-01', formatDate(new Date()));
+    return new Set(entries.map((e) => e.date)).size;
+  }, [habitId, todayEntries]);
 
-  const history = useMemo(() => generateMockHistory(habitId), [habitId]);
   const successRate = useMemo(() => {
     const done = history.filter((d) => d === 'done').length;
     return Math.round((done / 14) * 100);
@@ -118,9 +146,9 @@ export function HabitDetailScreen() {
     (e) => e.habitId === habitId && e.date === today,
   );
 
-  // Sessions today (mock: 1 of 3 if not completed, 3 of 3 if completed)
-  const sessionsTotal = 3;
-  const sessionsCompleted = isCompletedToday ? sessionsTotal : 1;
+  // Sessions: dailyTarget-based, 1 session = 1 check-in per day
+  const sessionsTotal = habit?.dailyTarget ?? 1;
+  const sessionsCompleted = isCompletedToday ? sessionsTotal : 0;
 
   if (!habit) {
     return (
@@ -249,12 +277,8 @@ export function HabitDetailScreen() {
                   >
                     <View className="w-2.5 h-2.5 rounded-full bg-white" />
                   </View>
-                ) : status === 'missed' ? (
-                  <View className="w-7 h-7 rounded-full border-[1.5px] border-destructive" />
                 ) : (
-                  <Text className="text-muted-foreground dark:text-muted-foreground-dark text-lg">
-                    ·
-                  </Text>
+                  <View className="w-7 h-7 rounded-full border-[1.5px] border-destructive" />
                 )}
               </View>
             ))}
@@ -266,14 +290,23 @@ export function HabitDetailScreen() {
               <View key={i} className="w-9 h-9 items-center justify-center">
                 {i === 6 ? (
                   // Today marker
-                  <View
-                    className="w-7 h-7 rounded-full border-[1.5px] border-dashed items-center justify-center"
-                    style={{ borderColor: habit.color }}
-                  >
-                    <Text style={{ color: habit.color, fontSize: 7, fontWeight: '700', letterSpacing: 0.5 }}>
-                      TODAY
-                    </Text>
-                  </View>
+                  status === 'done' ? (
+                    <View
+                      className="w-7 h-7 rounded-full items-center justify-center border-[1.5px]"
+                      style={{ backgroundColor: habit.color, borderColor: habit.color }}
+                    >
+                      <View className="w-2.5 h-2.5 rounded-full bg-white" />
+                    </View>
+                  ) : (
+                    <View
+                      className="w-7 h-7 rounded-full border-[1.5px] border-dashed items-center justify-center"
+                      style={{ borderColor: habit.color }}
+                    >
+                      <Text style={{ color: habit.color, fontSize: 7, fontWeight: '700', letterSpacing: 0.5 }}>
+                        TODAY
+                      </Text>
+                    </View>
+                  )
                 ) : status === 'done' ? (
                   <View
                     className="w-7 h-7 rounded-full items-center justify-center"
@@ -281,12 +314,8 @@ export function HabitDetailScreen() {
                   >
                     <View className="w-2.5 h-2.5 rounded-full bg-white" />
                   </View>
-                ) : status === 'missed' ? (
-                  <View className="w-7 h-7 rounded-full border-[1.5px] border-destructive" />
                 ) : (
-                  <Text className="text-muted-foreground dark:text-muted-foreground-dark text-lg">
-                    ·
-                  </Text>
+                  <View className="w-7 h-7 rounded-full border-[1.5px] border-destructive" />
                 )}
               </View>
             ))}
@@ -307,12 +336,6 @@ export function HabitDetailScreen() {
               <View className="w-2.5 h-2.5 rounded-full border border-destructive mr-1.5" />
               <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark font-medium">
                 MISSED
-              </Text>
-            </View>
-            <View className="flex-row items-center">
-              <View className="w-2.5 h-2.5 rounded-full bg-muted dark:bg-muted-dark mr-1.5" />
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark font-medium">
-                SKIP
               </Text>
             </View>
           </View>

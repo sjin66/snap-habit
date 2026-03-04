@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, ScrollView, useColorScheme } from 'react-native';
+import { View, Text, ScrollView, useColorScheme, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
@@ -54,12 +54,26 @@ function AnimatedBar({ percent, delay = 0 }: { percent: number; delay?: number }
   );
 }
 
+// ─── Constants ─────────────────────────────────────────
+
+const NUM_WEEKS = 12;
+const WEEKDAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+const LABEL_W = 22;
+const CELL_GAP = 3;
+
 // ─── Screen ────────────────────────────────────────────
 
 export function StatsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { habits, todayEntries } = useHabitStore();
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Cell size for GitHub-style grid
+  const gridInnerWidth = screenWidth - 40 - 32 - LABEL_W - CELL_GAP;
+  const cellSize = Math.floor(
+    (gridInnerWidth - CELL_GAP * (NUM_WEEKS - 1)) / NUM_WEEKS
+  );
 
   const stats = useMemo(() => {
     const today = formatDate(new Date());
@@ -140,23 +154,66 @@ export function StatsScreen() {
       longestStreak = best;
     }
 
-    // ── Activity grid (14 days) ──
-    const activityGrid: { date: string; ratio: number }[] = [];
-    for (let i = 13; i >= 0; i--) {
-      const dateStr = formatDate(daysAgo(i));
-      const dayCompletions = new Set(
-        recentEntries.filter((e) => e.date === dateStr).map((e) => e.habitId)
-      ).size;
-      const ratio = habits.length > 0 ? dayCompletions / habits.length : 0;
-      activityGrid.push({ date: dateStr, ratio });
+    // ── Activity grid (GitHub-style, 12 weeks) ──
+    const todayDate = new Date();
+    const todayDow = todayDate.getDay(); // 0=Sun
+    const monOffset = todayDow === 0 ? 6 : todayDow - 1; // Mon=0
+    const currentMon = new Date(todayDate);
+    currentMon.setDate(todayDate.getDate() - monOffset);
+    const gridStartDate = new Date(currentMon);
+    gridStartDate.setDate(currentMon.getDate() - (NUM_WEEKS - 1) * 7);
+    const gridStartStr = formatDate(gridStartDate);
+    const gridEntries = getEntriesInRange(gridStartStr, today);
+
+    const activityColumns: { date: string; ratio: number; empty: boolean }[][] = [];
+    for (let w = 0; w < NUM_WEEKS; w++) {
+      const week: { date: string; ratio: number; empty: boolean }[] = [];
+      for (let d = 0; d < 7; d++) {
+        const dayDate = new Date(gridStartDate);
+        dayDate.setDate(gridStartDate.getDate() + w * 7 + d);
+        const dateStr = formatDate(dayDate);
+        const isFuture = dateStr > today;
+        if (isFuture) {
+          week.push({ date: dateStr, ratio: 0, empty: true });
+        } else {
+          const dayCompletions = new Set(
+            gridEntries.filter((e) => e.date === dateStr).map((e) => e.habitId)
+          ).size;
+          const ratio = habits.length > 0 ? dayCompletions / habits.length : 0;
+          week.push({ date: dateStr, ratio, empty: false });
+        }
+      }
+      activityColumns.push(week);
     }
 
-    // ── Per-habit performance ──
+    // Month labels for the grid
+    const monthLabels: { label: string; colIndex: number }[] = [];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let lastMonth = -1;
+    for (let w = 0; w < NUM_WEEKS; w++) {
+      const firstDateInWeek = activityColumns[w][0].date;
+      const m = new Date(firstDateInWeek + 'T00:00:00').getMonth();
+      if (m !== lastMonth) {
+        monthLabels.push({ label: months[m], colIndex: w });
+        lastMonth = m;
+      }
+    }
+
+    // ── Per-habit performance (last 4 weeks) ──
+    const fourWeeksAgo = formatDate(daysAgo(27));
     const habitPerformance = habits.map((h) => {
-      const entries = getEntriesByHabitAndRange(h.id, fourteenDaysAgo, today);
-      const uniqueDays = new Set(entries.map((e) => e.date)).size;
-      const rate = Math.round((uniqueDays / 14) * 100);
-      return { id: h.id, name: h.name, icon: h.icon, color: h.color, rate, days: uniqueDays };
+      // Start date is the later of: 4 weeks ago or habit creation date
+      const createdDate = h.createdAt.split('T')[0];
+      const startDate = createdDate > fourWeeksAgo ? createdDate : fourWeeksAgo;
+      const entries = getEntriesByHabitAndRange(h.id, startDate, today);
+      const completedDays = new Set(entries.map((e) => e.date)).size;
+      // Days since start (inclusive)
+      const msPerDay = 86400000;
+      const expectedDays = Math.max(1, Math.floor(
+        (new Date(today + 'T00:00:00').getTime() - new Date(startDate + 'T00:00:00').getTime()) / msPerDay
+      ) + 1);
+      const rate = Math.round((completedDays / expectedDays) * 100);
+      return { id: h.id, name: h.name, icon: h.icon, color: h.color, rate, completedDays, expectedDays };
     });
 
     return {
@@ -165,7 +222,8 @@ export function StatsScreen() {
       weekChange,
       longestStreak,
       currentStreak,
-      activityGrid,
+      activityColumns,
+      monthLabels,
       habitPerformance,
     };
   }, [habits, todayEntries]);
@@ -245,7 +303,7 @@ export function StatsScreen() {
           {/* Longest Streak */}
           <View className="flex-1 p-4 rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark">
             <View className="flex-row items-center mb-2">
-              <Ionicons name="flame" size={18} color={isDark ? '#EBEBEB' : '#141414'} />
+              <Ionicons name="flame" size={18} color="#F97316" />
               <Text className="text-sm font-medium text-muted-foreground dark:text-muted-foreground-dark ml-1.5">
                 Longest Streak
               </Text>
@@ -264,51 +322,92 @@ export function StatsScreen() {
           </View>
         </Animated.View>
 
-        {/* ── Activity Grid (14 Days) ── */}
-        <Animated.View entering={FadeInDown.delay(180).duration(400)} className="mx-5 mt-6">
-          <Text className="text-lg font-bold text-foreground dark:text-foreground-dark mb-3">
-            Activity (14 Days)
-          </Text>
+        {/* ── Activity Grid (GitHub-style) ── */}
+        <Animated.View entering={FadeInDown.delay(180).duration(400)} className="mx-5 mt-4">
           <View className="p-4 rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark">
-            <View className="flex-row flex-wrap" style={{ gap: 6 }}>
-              {stats.activityGrid.map((day, i) => {
-                // Green intensity based on completion ratio
-                const opacity = day.ratio === 0 ? 0.08 : 0.15 + day.ratio * 0.85;
-                const isToday = i === stats.activityGrid.length - 1;
-                return (
+            <Text className="text-sm font-medium text-muted-foreground dark:text-muted-foreground-dark mb-3">
+              Activity
+            </Text>
+            <View className="flex-row">
+              {/* Weekday labels */}
+              <View style={{ width: LABEL_W, marginRight: CELL_GAP }}>
+                {WEEKDAY_LABELS.map((d, i) => (
                   <View
-                    key={day.date}
+                    key={d}
                     style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 8,
-                      backgroundColor: isDark
-                        ? `rgba(34, 197, 94, ${opacity})`
-                        : `rgba(34, 197, 94, ${opacity})`,
-                      borderWidth: isToday ? 2 : 0,
-                      borderColor: isToday ? '#22C55E' : 'transparent',
+                      height: cellSize,
+                      marginBottom: i < 6 ? CELL_GAP : 0,
+                      justifyContent: 'center',
                     }}
-                  />
-                );
-              })}
+                  >
+                    <Text
+                      className="text-muted-foreground dark:text-muted-foreground-dark"
+                      style={{ fontSize: 10 }}
+                    >
+                      {d}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              {/* Week columns */}
+              {stats.activityColumns.map((week, wi) => (
+                <View
+                  key={wi}
+                  style={{
+                    marginRight: wi < stats.activityColumns.length - 1 ? CELL_GAP : 0,
+                  }}
+                >
+                  {week.map((day, di) => {
+                    const opacity = day.empty
+                      ? 0
+                      : day.ratio === 0
+                      ? 0.08
+                      : 0.15 + day.ratio * 0.85;
+                    return (
+                      <View
+                        key={day.date}
+                        style={{
+                          width: cellSize,
+                          height: cellSize,
+                          marginBottom: di < 6 ? CELL_GAP : 0,
+                          borderRadius: 3,
+                          backgroundColor: day.empty
+                            ? 'transparent'
+                            : isDark
+                            ? `rgba(235, 235, 235, ${opacity})`
+                            : `rgba(20, 20, 20, ${opacity})`,
+                        }}
+                      />
+                    );
+                  })}
+                </View>
+              ))}
             </View>
-            <View className="flex-row justify-between mt-3">
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
-                2 weeks ago
-              </Text>
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark">
-                Today
-              </Text>
+            {/* Month labels */}
+            <View style={{ height: 16, marginTop: 4 }}>
+              {stats.monthLabels.map((ml) => (
+                <Text
+                  key={`${ml.label}-${ml.colIndex}`}
+                  className="text-muted-foreground dark:text-muted-foreground-dark"
+                  style={{
+                    fontSize: 10,
+                    position: 'absolute',
+                    left: LABEL_W + CELL_GAP + ml.colIndex * (cellSize + CELL_GAP),
+                  }}
+                >
+                  {ml.label}
+                </Text>
+              ))}
             </View>
           </View>
         </Animated.View>
 
         {/* ── Habit Performance ── */}
-        <Animated.View entering={FadeInDown.delay(240).duration(400)} className="mx-5 mt-6">
-          <Text className="text-lg font-bold text-foreground dark:text-foreground-dark mb-3">
-            Habit Performance
-          </Text>
+        <Animated.View entering={FadeInDown.delay(240).duration(400)} className="mx-5 mt-4">
           <View className="rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark overflow-hidden">
+            <Text className="text-sm font-medium text-muted-foreground dark:text-muted-foreground-dark px-4 pt-4 pb-2">
+              Habit Performance
+            </Text>
             {stats.habitPerformance.map((hp, i) => (
               <View
                 key={hp.id}
@@ -341,7 +440,7 @@ export function StatsScreen() {
                     />
                   </View>
                   <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark mt-1">
-                    {hp.days}/14 days
+                    {hp.completedDays}/{hp.expectedDays} days
                   </Text>
                 </View>
               </View>
