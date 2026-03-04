@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, ScrollView, useColorScheme, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useFocusEffect } from '@react-navigation/native';
 import Animated, {
   FadeInDown,
   useSharedValue,
@@ -73,6 +74,14 @@ export function StatsScreen() {
   const gridInnerWidth = screenWidth - 40 - 32 - LABEL_W - CELL_GAP;
   const cellSize = Math.floor(
     (gridInnerWidth - CELL_GAP * (NUM_WEEKS - 1)) / NUM_WEEKS
+  );
+
+  // Re-trigger entering animations on each tab focus
+  const [animKey, setAnimKey] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setAnimKey((k) => k + 1);
+    }, [])
   );
 
   const stats = useMemo(() => {
@@ -240,6 +249,7 @@ export function StatsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark" edges={['top']}>
       <ScrollView
+        key={animKey}
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}

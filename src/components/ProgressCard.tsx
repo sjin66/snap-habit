@@ -51,16 +51,12 @@ export function ProgressCard({ completed, total }: Props) {
       </View>
 
       {/* Progress bar */}
-      <View className="h-1.5 bg-secondary dark:bg-secondary-dark rounded-full mb-3.5 overflow-hidden">
+      <View className="h-1.5 bg-secondary dark:bg-secondary-dark rounded-full overflow-hidden">
         <Animated.View
           className="h-full bg-primary dark:bg-primary-dark rounded-full"
           style={barStyle}
         />
       </View>
-
-      <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark italic leading-5">
-        {quote}
-      </Text>
     </View>
   );
 }

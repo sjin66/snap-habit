@@ -7,7 +7,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import DraggableFlatList, {
   RenderItemParams,
   ScaleDecorator,
@@ -38,6 +38,14 @@ export function TodayScreen() {
   const colorScheme = useColorScheme();
 
   const [isJiggling, setIsJiggling] = useState(false);
+
+  // Re-trigger entering animations on each tab focus
+  const [animKey, setAnimKey] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      setAnimKey((k) => k + 1);
+    }, [])
+  );
 
   const todayItems = getTodayItems();
   const completed = todayItems.filter((h) => h.isCompleted).length;
@@ -123,53 +131,54 @@ export function TodayScreen() {
         barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'}
         backgroundColor={colorScheme === 'dark' ? '#0A0A0A' : '#FFFFFF'}
       />
+
+      {/* Fixed header */}
+      <View className="pt-3 pb-2">
+        <View className="flex-row justify-between items-start px-5">
+          <View>
+            <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mb-0.5">
+              {dateStr}
+            </Text>
+            <Text className="text-[32px] font-extrabold text-foreground dark:text-foreground-dark tracking-tight">
+              Today
+            </Text>
+          </View>
+          {isJiggling ? (
+            <TouchableOpacity
+              onPress={() => setIsJiggling(false)}
+              activeOpacity={0.7}
+              className="px-4 h-9 rounded-full bg-primary dark:bg-primary-dark justify-center items-center mt-1"
+            >
+              <Text className="text-[15px] font-semibold text-background dark:text-background-dark">
+                Done
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('AddHabit')}
+              activeOpacity={0.7}
+              className="w-11 h-11 rounded-full bg-foreground dark:bg-foreground-dark justify-center items-center shadow-sm mt-1 border border-border dark:border-border-dark"
+            >
+              <Text className="text-[22px] font-normal text-secondary dark:text-secondary-dark  leading-[26px]">
+                +
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <View className="mt-3">
+          <ProgressCard completed={completed} total={total} />
+        </View>
+      </View>
+
       <DraggableFlatList
+        key={animKey}
         data={todayItems}
         keyExtractor={(item) => item.habitId}
         renderItem={renderItem}
         onDragEnd={handleDragEnd}
         activationDistance={isJiggling ? 5 : 10000}
-        containerStyle={{ height: '100%' }}
-        ListHeaderComponent={
-          <>
-            {/* Header */}
-            <View className="flex-row justify-between items-start px-5 pt-3 pb-5">
-              <View>
-                <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mb-0.5">
-                  {dateStr}
-                </Text>
-                <Text className="text-[32px] font-extrabold text-foreground dark:text-foreground-dark tracking-tight">
-                  Today
-                </Text>
-              </View>
-              {isJiggling ? (
-                <TouchableOpacity
-                  onPress={() => setIsJiggling(false)}
-                  activeOpacity={0.7}
-                  className="px-4 h-9 rounded-full bg-primary dark:bg-primary-dark justify-center items-center mt-1"
-                >
-                  <Text className="text-[15px] font-semibold text-background dark:text-background-dark">
-                    Done
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('AddHabit')}
-                  activeOpacity={0.7}
-                  className="w-11 h-11 rounded-full bg-foreground dark:bg-foreground-dark justify-center items-center shadow-sm mt-1 border border-border dark:border-border-dark"
-                >
-                  <Text className="text-[22px] font-normal text-secondary dark:text-secondary-dark  leading-[26px]">
-                    +
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Progress card */}
-            <ProgressCard completed={completed} total={total} />
-            <View className="h-6" />
-          </>
-        }
+        containerStyle={{ flex: 1 }}
+        ListHeaderComponent={<View className="h-3" />}
         ListFooterComponent={<View className="h-8" />}
       />
     </SafeAreaView>

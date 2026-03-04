@@ -262,14 +262,15 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
           <Text className="text-[13px] text-foreground dark:text-foreground-dark">
             {item.dailyTarget} {item.unit}
           </Text>
-          <Text className="text-[13px] text-foreground dark:text-foreground-dark"> · </Text>
-          <Text
-            className={`text-[13px] text-foreground dark:text-foreground-dark ${
-              item.isCompleted ? 'font-semibold' : ''
-            }`}
-          >
-            {item.isCompleted ? 'Done' : 'Not done'}
-          </Text>
+          {item.streak > 0 && (
+            <>
+              <Text className="text-[13px] text-foreground dark:text-foreground-dark"> · </Text>
+              <Ionicons name="flame" size={13} color="#F97316" />
+              <Text className="text-[13px] font-medium text-foreground dark:text-foreground-dark ml-0.5">
+                {item.streak}d
+              </Text>
+            </>
+          )}
         </View>
       </View>
 

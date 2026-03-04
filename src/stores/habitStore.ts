@@ -9,6 +9,7 @@ import {
   insertEntry,
   getEntriesByDate,
   deleteEntryByHabitAndDate,
+  getEntriesByHabitAndRange,
 } from '../services/database';
 
 interface HabitState {
@@ -107,6 +108,25 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       const entry = todayEntries.find(
         (e) => e.habitId === habit.id && e.date === today
       );
+
+      // Calculate current streak (consecutive days including today)
+      let streak = 0;
+      const d = new Date();
+      for (let i = 0; i < 365; i++) {
+        const dateStr = d.toISOString().split('T')[0];
+        const dayEntries = getEntriesByHabitAndRange(habit.id, dateStr, dateStr);
+        if (dayEntries.length > 0) {
+          streak++;
+        } else if (i === 0) {
+          // Today not done yet — check from yesterday
+          d.setDate(d.getDate() - 1);
+          continue;
+        } else {
+          break;
+        }
+        d.setDate(d.getDate() - 1);
+      }
+
       return {
         habitId: habit.id,
         name: habit.name,
@@ -116,6 +136,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         unit: habit.unit,
         isCompleted: !!entry,
         completedAt: entry?.completedAt,
+        streak,
       };
     });
   },

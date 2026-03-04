@@ -44,4 +44,5 @@ export interface TodayHabitItem {
   unit: string;
   isCompleted: boolean;
   completedAt?: string;
+  streak: number;
 }
