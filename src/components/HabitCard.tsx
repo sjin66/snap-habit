@@ -1,22 +1,85 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Animated, useColorScheme } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, Alert, useColorScheme } from 'react-native';
 import ReAnimated, {
   FadeInDown,
   FadeOut,
+  SharedValue,
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
   withSequence,
   withTiming,
+  interpolate,
+  Extrapolation,
   Easing,
   FadeIn,
 } from 'react-native-reanimated';
-import { Swipeable } from 'react-native-gesture-handler';
+import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import type { TodayHabitItem } from '../types/habit';
+
+/** Separate component so useAnimatedStyle hooks run on the UI thread */
+function RightActions({
+  progress,
+  dragX,
+  totalWidth,
+  btnWidth,
+  cardHeight,
+  onEdit,
+  onDelete,
+}: {
+  progress: SharedValue<number>;
+  dragX: SharedValue<number>;
+  totalWidth: number;
+  btnWidth: number;
+  cardHeight: number;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: interpolate(progress.value, [0, 1], [totalWidth, 0], Extrapolation.CLAMP) }],
+  }));
+  const editStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(dragX.value, [-totalWidth, -40, 0], [1, 0.9, 0.85], Extrapolation.CLAMP) }],
+  }));
+  const deleteStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(dragX.value, [-totalWidth, -60, 0], [1, 0.92, 0.85], Extrapolation.CLAMP) }],
+  }));
+
+  return (
+    <ReAnimated.View style={[{ flexDirection: 'row', alignItems: 'stretch', gap: 12, paddingLeft: 12 }, containerStyle]}>
+      <ReAnimated.View style={editStyle}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onEdit}
+          style={{
+            width: btnWidth, height: cardHeight,
+            backgroundColor: '#3B82F615', borderWidth: 1, borderColor: '#3B82F630',
+            borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+          }}
+        >
+          <Ionicons name="create" size={26} color="#3B82F6" />
+        </TouchableOpacity>
+      </ReAnimated.View>
+      <ReAnimated.View style={deleteStyle}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onDelete}
+          style={{
+            width: btnWidth, height: cardHeight,
+            backgroundColor: '#EF444415', borderWidth: 1, borderColor: '#EF444430',
+            borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+          }}
+        >
+          <AntDesign name="delete" size={26} color="#EF4444" />
+        </TouchableOpacity>
+      </ReAnimated.View>
+    </ReAnimated.View>
+  );
+}
 
 interface Props {
   item: TodayHabitItem;
@@ -32,7 +95,7 @@ interface Props {
 
 export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling, onLongPress, onDrag, isDragging }: Props) {
   const scale = React.useRef(new Animated.Value(1)).current;
-  const swipeableRef = useRef<Swipeable>(null);
+  const swipeableRef = useRef<SwipeableMethods>(null);
   const navigation = useNavigation<any>();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -45,22 +108,33 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
   const deleteAnim = useRef(new Animated.Value(1)).current; // 1=visible, 0=gone
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const triggerDelete = useCallback(() => {
+  const performDelete = useCallback(() => {
     if (isDeleting) return;
     setIsDeleting(true);
     Animated.timing(deleteAnim, {
       toValue: 0,
       duration: 300,
-      useNativeDriver: false, // height animation needs native driver off
+      useNativeDriver: false,
     }).start(() => {
       onDelete?.(item.habitId);
     });
   }, [isDeleting, deleteAnim, onDelete, item.habitId]);
 
+  const triggerDelete = useCallback(() => {
+    Alert.alert(
+      'Delete Habit',
+      `Are you sure you want to delete "${item.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: performDelete },
+      ],
+    );
+  }, [item.name, performDelete]);
+
   // Jiggle animation — randomize per card for a natural iOS feel
   const jiggleRotation = useSharedValue(0);
   const angleRef = useRef(1.2 + Math.random() * 1.2);   // 1.2°–2.4°
-  const durationRef = useRef(120 + Math.random() * 80);   // 120–200ms per step
+  const durationRef = useRef(120 + Math.random() * 80);  // 120–200ms per step
 
   useEffect(() => {
     if (isJiggling) {
@@ -93,64 +167,27 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
     onCheckIn(item.habitId);
   }, [item.habitId, onCheckIn, scale]);
 
+  const totalWidth = 12 + btnWidth + 12 + btnWidth;
+
   const renderRightActions = useCallback(
-    (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
-      // actions 总宽 = paddingLeft(12) + edit(btnWidth) + gap(12) + delete(btnWidth)
-      const totalWidth = 12 + btnWidth + 12 + btnWidth;
-
-      // 整体跟随卡片滑入：progress 0→1 时从右侧隐藏位置滑到最终位置
-      const containerTranslateX = progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [totalWidth, 0],
-        extrapolate: 'clamp',
-      });
-
-      const editScale = dragX.interpolate({
-        inputRange: [-totalWidth, -40, 0],
-        outputRange: [1, 0.9, 0.85],
-        extrapolate: 'clamp',
-      });
-      const deleteScale = dragX.interpolate({
-        inputRange: [-totalWidth, -60, 0],
-        outputRange: [1, 0.92, 0.85],
-        extrapolate: 'clamp',
-      });
-
-      return (
-        <Animated.View
-          className="flex-row items-stretch"
-          style={{ gap: 12, paddingLeft: 12, transform: [{ translateX: containerTranslateX }] }}
-        >
-          <Animated.View style={{ transform: [{ scale: editScale }] }}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => {
-                swipeableRef.current?.close();
-                onEdit?.(item.habitId);
-              }}
-              className="rounded-xl justify-center items-center"
-              style={{ width: btnWidth, height: cardHeight, backgroundColor: '#3B82F615', borderWidth: 1, borderColor: '#3B82F630' }}
-            >
-              <Ionicons name="create" size={26} color="#3B82F6" />
-            </TouchableOpacity>
-          </Animated.View>
-          <Animated.View style={{ transform: [{ scale: deleteScale }] }}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => {
-                swipeableRef.current?.close();
-                triggerDelete();
-              }}
-              className="rounded-xl justify-center items-center"
-              style={{ width: btnWidth, height: cardHeight, backgroundColor: '#EF444415', borderWidth: 1, borderColor: '#EF444430' }}
-            >
-              <AntDesign name="delete" size={26} color="#EF4444" />
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      );
-    },
-    [item.habitId, triggerDelete, onEdit, cardHeight],
+    (progress: SharedValue<number>, dragX: SharedValue<number>) => (
+      <RightActions
+        progress={progress}
+        dragX={dragX}
+        totalWidth={totalWidth}
+        btnWidth={btnWidth}
+        cardHeight={cardHeight}
+        onEdit={() => {
+          swipeableRef.current?.close();
+          onEdit?.(item.habitId);
+        }}
+        onDelete={() => {
+          swipeableRef.current?.close();
+          triggerDelete();
+        }}
+      />
+    ),
+    [item.habitId, triggerDelete, onEdit, cardHeight, totalWidth, btnWidth],
   );
 
   return (
@@ -171,7 +208,7 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
             outputRange: [0.8, 0.95, 1],
           }),
         }],
-        overflow: isDeleting ? 'hidden' as const : 'visible' as const,
+        // overflow: isDeleting ? 'hidden' as const : 'visible' as const,
         marginHorizontal: 20,
       }}
     >
@@ -179,12 +216,13 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
       entering={FadeInDown.delay(index * 80).duration(400)}
     >
     <ReAnimated.View style={[jiggleStyle, isDragging && { opacity: 0.85 }]}>
-    <Swipeable
+    <ReanimatedSwipeable
       ref={swipeableRef}
       renderRightActions={isJiggling ? undefined : renderRightActions}
       overshootRight={false}
       friction={2}
       enabled={!isJiggling}
+      rightThreshold={40}
     >
     <TouchableOpacity
       activeOpacity={0.9}
@@ -261,7 +299,7 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
       </TouchableOpacity>
     </Animated.View>
     </TouchableOpacity>
-    </Swipeable>
+    </ReanimatedSwipeable>
     {/* Jiggle delete badge — outside Swipeable to avoid clipping */}
     {isJiggling && (
       <ReAnimated.View

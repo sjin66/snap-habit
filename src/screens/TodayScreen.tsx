@@ -204,9 +204,9 @@ export function TodayScreen() {
                 <TouchableOpacity
                   onPress={() => navigation.navigate('AddHabit')}
                   activeOpacity={0.7}
-                  className="w-11 h-11 rounded-full bg-secondary dark:bg-secondary-dark justify-center items-center shadow-sm mt-1 border border-border dark:border-border-dark"
+                  className="w-11 h-11 rounded-full bg-foreground dark:bg-foreground-dark justify-center items-center shadow-sm mt-1 border border-border dark:border-border-dark"
                 >
-                  <Text className="text-[22px] text-foreground dark:text-foreground-dark font-light leading-[26px]">
+                  <Text className="text-[22px] font-normal text-secondary dark:text-secondary-dark  leading-[26px]">
                     +
                   </Text>
                 </TouchableOpacity>

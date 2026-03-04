@@ -49,6 +49,7 @@ const WEEKDAY_VALUES = [1, 2, 3, 4, 5, 6, 7];
 
 type NewHabitRouteParams = {
   NewHabit: {
+    editHabitId?: string;
     presetName?: string;
     presetIcon?: string;
     presetColor?: string;
@@ -62,9 +63,10 @@ export function NewHabitScreen() {
   const route = useRoute<RouteProp<NewHabitRouteParams, 'NewHabit'>>();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { addHabit } = useHabitStore();
+  const { addHabit, updateHabit } = useHabitStore();
 
   const preset = route.params ?? {};
+  const isEditing = !!preset.editHabitId;
 
   const [name, setName] = useState(preset.presetName ?? '');
   const [note, setNote] = useState('');
@@ -127,17 +129,29 @@ export function NewHabitScreen() {
         ? { type: 'daily' }
         : { type: 'weekly', daysOfWeek: selectedDays };
 
-    addHabit({
-      id: Date.now().toString(),
-      name: name.trim(),
-      icon: selectedIcon,
-      color: selectedColor,
-      note: note.trim() || undefined,
-      frequency,
-      dailyTarget,
-      unit,
-      createdAt: new Date().toISOString(),
-    });
+    if (isEditing && preset.editHabitId) {
+      updateHabit(preset.editHabitId, {
+        name: name.trim(),
+        icon: selectedIcon,
+        color: selectedColor,
+        note: note.trim() || undefined,
+        frequency,
+        dailyTarget,
+        unit,
+      });
+    } else {
+      addHabit({
+        id: Date.now().toString(),
+        name: name.trim(),
+        icon: selectedIcon,
+        color: selectedColor,
+        note: note.trim() || undefined,
+        frequency,
+        dailyTarget,
+        unit,
+        createdAt: new Date().toISOString(),
+      });
+    }
     navigation.popToTop();
   };
 
@@ -149,7 +163,7 @@ export function NewHabitScreen() {
           <Ionicons name="close" size={24} color={isDark ? '#FAFAFA' : '#0A0A0A'} />
         </TouchableOpacity>
         <Text className="text-lg font-semibold text-foreground dark:text-foreground-dark">
-          New Habit
+          {isEditing ? 'Edit Habit' : 'New Habit'}
         </Text>
         <TouchableOpacity onPress={handleCreate} hitSlop={12}>
           <Text className="text-base font-semibold text-accent dark:text-accent-dark">
@@ -448,7 +462,7 @@ export function NewHabitScreen() {
           <Text className={`text-base font-semibold ${
             name.trim() ? 'text-primary-foreground dark:text-primary-foreground-dark' : 'text-muted-foreground dark:text-muted-foreground-dark'
           }`}>
-            Create Habit
+            {isEditing ? 'Save Changes' : 'Create Habit'}
           </Text>
         </TouchableOpacity>
       </View>
