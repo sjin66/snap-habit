@@ -29,7 +29,13 @@ interface HabitState {
   getTodayItems: () => TodayHabitItem[];
 }
 
-const getToday = () => new Date().toISOString().split('T')[0];
+const getToday = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
 export const useHabitStore = create<HabitState>((set, get) => ({
   habits: [],
@@ -113,7 +119,10 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       let streak = 0;
       const d = new Date();
       for (let i = 0; i < 365; i++) {
-        const dateStr = d.toISOString().split('T')[0];
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${day}`;
         const dayEntries = getEntriesByHabitAndRange(habit.id, dateStr, dateStr);
         if (dayEntries.length > 0) {
           streak++;

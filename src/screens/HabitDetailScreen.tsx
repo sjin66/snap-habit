@@ -18,7 +18,10 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 type DetailRoute = RouteProp<RootStackParamList, 'HabitDetail'>;
 
 function formatDate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function daysAgo(n: number): Date {
@@ -141,7 +144,7 @@ export function HabitDetailScreen() {
     return Math.round((done / 14) * 100);
   }, [history]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatDate(new Date());
   const isCompletedToday = todayEntries.some(
     (e) => e.habitId === habitId && e.date === today,
   );

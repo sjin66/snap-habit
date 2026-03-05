@@ -15,7 +15,10 @@ import { getEntriesInRange, getEntriesByHabitAndRange } from '../services/databa
 // ─── Helpers ───────────────────────────────────────────
 
 function formatDate(d: Date): string {
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function daysAgo(n: number): Date {
@@ -98,13 +101,32 @@ export function StatsScreen() {
     // Count days elapsed in the week so far (Mon=1)
     const now = new Date();
     const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay(); // Mon=1..Sun=7
-    const totalPossible = habits.length * dayOfWeek;
+    // Per-habit: count days since max(weekStart, createdAt) to today (inclusive)
+    const totalPossible = habits.reduce((sum, h) => {
+      const createdDate = (h.createdAt || '').split('T')[0];
+      const effectiveStart = createdDate > weekStart ? createdDate : weekStart;
+      if (effectiveStart > today) return sum; // created in the future, skip
+      const msPerDay = 86400000;
+      const days = Math.floor(
+        (new Date(today + 'T00:00:00').getTime() - new Date(effectiveStart + 'T00:00:00').getTime()) / msPerDay
+      ) + 1;
+      return sum + Math.max(0, days);
+    }, 0);
     // Unique (habitId, date) combos this week
     const weekCompletions = new Set(weekEntries.map((e) => `${e.habitId}_${e.date}`)).size;
     const weekPercent = totalPossible > 0 ? Math.round((weekCompletions / totalPossible) * 100) : 0;
 
     // ── Completion rate (14 days) ──
-    const totalPossible14 = habits.length * 14;
+    const totalPossible14 = habits.reduce((sum, h) => {
+      const createdDate = (h.createdAt || '').split('T')[0];
+      const effectiveStart = createdDate > fourteenDaysAgo ? createdDate : fourteenDaysAgo;
+      if (effectiveStart > today) return sum;
+      const msPerDay = 86400000;
+      const days = Math.floor(
+        (new Date(today + 'T00:00:00').getTime() - new Date(effectiveStart + 'T00:00:00').getTime()) / msPerDay
+      ) + 1;
+      return sum + Math.max(0, days);
+    }, 0);
     const completions14 = new Set(recentEntries.map((e) => `${e.habitId}_${e.date}`)).size;
     const completionRate = totalPossible14 > 0 ? Math.round((completions14 / totalPossible14) * 100) : 0;
 
