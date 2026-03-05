@@ -63,20 +63,27 @@ export function NewHabitScreen() {
   const route = useRoute<RouteProp<NewHabitRouteParams, 'NewHabit'>>();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { addHabit, updateHabit } = useHabitStore();
+  const { addHabit, updateHabit, habits } = useHabitStore();
 
   const preset = route.params ?? {};
   const isEditing = !!preset.editHabitId;
+  const editHabit = isEditing ? habits.find((h) => h.id === preset.editHabitId) : undefined;
 
-  const [name, setName] = useState(preset.presetName ?? '');
-  const [note, setNote] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState<string>(preset.presetIcon ?? ICONS[0]);
-  const [selectedColor, setSelectedColor] = useState(preset.presetColor ?? HABIT_COLORS[0]);
-  const [dailyTarget, setDailyTarget] = useState(preset.presetGoal ?? 1);
-  const [targetText, setTargetText] = useState(String(preset.presetGoal ?? 1));
-  const [unit, setUnit] = useState(preset.presetUnit ?? 'times');
-  const [freqType, setFreqType] = useState<'daily' | 'weekly'>('daily');
-  const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [name, setName] = useState(editHabit?.name ?? preset.presetName ?? '');
+  const [note, setNote] = useState(editHabit?.note ?? '');
+  const [selectedIcon, setSelectedIcon] = useState<string>(editHabit?.icon ?? preset.presetIcon ?? ICONS[0]);
+  const [selectedColor, setSelectedColor] = useState(editHabit?.color ?? preset.presetColor ?? HABIT_COLORS[0]);
+  const [dailyTarget, setDailyTarget] = useState(editHabit?.dailyTarget ?? preset.presetGoal ?? 1);
+  const [targetText, setTargetText] = useState(String(editHabit?.dailyTarget ?? preset.presetGoal ?? 1));
+  const [unit, setUnit] = useState(editHabit?.unit ?? preset.presetUnit ?? 'times');
+  const [freqType, setFreqType] = useState<'daily' | 'weekly'>(
+    (editHabit?.frequency?.type === 'weekly' ? 'weekly' : 'daily') as 'daily' | 'weekly',
+  );
+  const [selectedDays, setSelectedDays] = useState<number[]>(
+    editHabit?.frequency?.type === 'weekly' && editHabit.frequency.daysOfWeek
+      ? editHabit.frequency.daysOfWeek
+      : [1, 2, 3, 4, 5],
+  );
   const [reminderEnabled, setReminderEnabled] = useState(false);
 
   const iconScrollRef = useRef<ScrollView>(null);

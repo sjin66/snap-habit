@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -39,11 +39,23 @@ export function TodayScreen() {
 
   const [isJiggling, setIsJiggling] = useState(false);
 
-  // Re-trigger entering animations on each tab focus
+  // Re-trigger entering animations only on tab press (not on stack back navigation)
   const [animKey, setAnimKey] = useState(0);
+  const isTabPress = useRef(false);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('tabPress', () => {
+      isTabPress.current = true;
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   useFocusEffect(
     useCallback(() => {
-      setAnimKey((k) => k + 1);
+      if (isTabPress.current) {
+        setAnimKey((k) => k + 1);
+        isTabPress.current = false;
+      }
     }, [])
   );
 
