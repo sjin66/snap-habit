@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, useColorScheme, ViewStyle } from 'react-native';
+import { View, Text, ScrollView, useColorScheme, ViewStyle } from 'react-native';
 
 const ITEM_HEIGHT = 30;
 const VISIBLE_ITEMS = 3;
@@ -21,12 +21,12 @@ export default function WheelPicker({
   style,
 }: WheelPickerProps) {
   const isDark = useColorScheme() === 'dark';
-  const flatListRef = useRef<FlatList>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     setTimeout(() => {
-      flatListRef.current?.scrollToOffset({
-        offset: selectedIndex * ITEM_HEIGHT,
+      scrollRef.current?.scrollTo({
+        y: selectedIndex * ITEM_HEIGHT,
         animated: false,
       });
     }, 50);
@@ -42,44 +42,6 @@ export default function WheelPicker({
       }
     },
     [data.length, onChange, selectedIndex],
-  );
-
-  // 1 padding item top/bottom for 3-visible centering
-  const paddedData = ['__pad__', ...data, '__pad__'];
-
-  const renderItem = useCallback(
-    ({ item, index }: { item: string; index: number }) => {
-      const realIndex = index - 1;
-      const isPad = item === '__pad__';
-      const isSelected = realIndex === selectedIndex;
-
-      if (isPad) {
-        return <View style={{ height: ITEM_HEIGHT }} />;
-      }
-
-      return (
-        <View
-          style={{
-            height: ITEM_HEIGHT,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <Text
-            style={{
-              fontSize: isSelected ? 20 : 14,
-              fontWeight: isSelected ? '700' : '400',
-              color: isSelected
-                ? isDark ? '#EBEBEB' : '#141414'
-                : isDark ? '#555' : '#BBB',
-            }}
-          >
-            {item}
-          </Text>
-        </View>
-      );
-    },
-    [isDark, selectedIndex],
   );
 
   return (
@@ -98,24 +60,46 @@ export default function WheelPicker({
           zIndex: 1,
         }}
       />
-      <FlatList
-        ref={flatListRef}
-        data={paddedData}
-        keyExtractor={(_, i) => String(i)}
-        renderItem={renderItem}
+      <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         snapToInterval={ITEM_HEIGHT}
         decelerationRate="fast"
         bounces={false}
         onMomentumScrollEnd={handleMomentumScrollEnd}
-        getItemLayout={(_, index) => ({
-          length: ITEM_HEIGHT,
-          offset: ITEM_HEIGHT * index,
-          index,
-        })}
+        nestedScrollEnabled
         style={{ zIndex: 2 }}
-        initialScrollIndex={selectedIndex > 0 ? selectedIndex : undefined}
-      />
+      >
+        {/* Top padding */}
+        <View style={{ height: ITEM_HEIGHT }} />
+        {data.map((item, index) => {
+          const isSelected = index === selectedIndex;
+          return (
+            <View
+              key={index}
+              style={{
+                height: ITEM_HEIGHT,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: isSelected ? 20 : 14,
+                  fontWeight: isSelected ? '700' : '400',
+                  color: isSelected
+                    ? isDark ? '#EBEBEB' : '#141414'
+                    : isDark ? '#555' : '#BBB',
+                }}
+              >
+                {item}
+              </Text>
+            </View>
+          );
+        })}
+        {/* Bottom padding */}
+        <View style={{ height: ITEM_HEIGHT }} />
+      </ScrollView>
     </View>
   );
 }

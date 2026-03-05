@@ -5,7 +5,10 @@ import {
   TouchableOpacity,
   StatusBar,
   useColorScheme,
+  ScrollView,
+  StyleSheet,
 } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { cancelHabitReminder } from '../services/notifications';
@@ -64,6 +67,43 @@ export function TodayScreen() {
   const completed = todayItems.filter((h) => h.isCompleted).length;
   const total = todayItems.length;
 
+  // Stable key for dependency tracking (changes only on actual data change)
+  const itemsKey = todayItems.map((i) => `${i.habitId}:${i.isCompleted}`).join(',');
+
+  // Display list: sorted unchecked-first, with animated reorder on check-in
+  const [displayItems, setDisplayItems] = useState<TodayHabitItem[]>([]);
+  const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingMoveRef = useRef(false);
+
+  // Sync display items from store (respects pending animation and jiggle mode)
+  useEffect(() => {
+    if (isJiggling) {
+      // In jiggle/drag mode — don't override manual order, just refresh data in place
+      setDisplayItems((prev) =>
+        prev.map((p) => {
+          const fresh = todayItems.find((t) => t.habitId === p.habitId);
+          return fresh ?? p;
+        }).filter((p) => todayItems.some((t) => t.habitId === p.habitId))
+      );
+    } else if (pendingMoveRef.current) {
+      // Animation pending — just update data in place, keep current order
+      setDisplayItems((prev) =>
+        prev.map((p) => {
+          const fresh = todayItems.find((t) => t.habitId === p.habitId);
+          return fresh ?? p;
+        }).filter((p) => todayItems.some((t) => t.habitId === p.habitId))
+      );
+    } else {
+      // No animation pending — sort normally
+      const sorted = [...todayItems].sort((a, b) => {
+        if (a.isCompleted === b.isCompleted) return 0;
+        return a.isCompleted ? 1 : -1;
+      });
+      setDisplayItems(sorted);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsKey]);
+
   const handleLongPress = useCallback(() => {
     setIsJiggling(true);
   }, []);
@@ -71,11 +111,32 @@ export function TodayScreen() {
   const handleCheckIn = useCallback(
     (habitId: string) => {
       const item = todayItems.find((h) => h.habitId === habitId);
-      if (item?.isCompleted) {
-        uncheckIn(habitId);
-      } else {
+      const willComplete = !item?.isCompleted;
+
+      // Mark that we have a pending reorder animation
+      pendingMoveRef.current = true;
+
+      // Update store immediately (checkmark appears)
+      if (willComplete) {
         checkIn(habitId);
+      } else {
+        uncheckIn(habitId);
       }
+
+      // After checkmark animation plays, reorder
+      if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
+      moveTimerRef.current = setTimeout(() => {
+        pendingMoveRef.current = false;
+        setDisplayItems((prev) => {
+          const updated = prev.map((p) =>
+            p.habitId === habitId ? { ...p, isCompleted: willComplete } : p
+          );
+          return updated.sort((a, b) => {
+            if (a.isCompleted === b.isCompleted) return 0;
+            return a.isCompleted ? 1 : -1;
+          });
+        });
+      }, 400);
     },
     [checkIn, uncheckIn, todayItems],
   );
@@ -135,6 +196,8 @@ export function TodayScreen() {
   const handleDragEnd = useCallback(
     ({ data }: { data: TodayHabitItem[] }) => {
       reorderHabits(data.map((d) => d.habitId));
+      // Sync displayItems immediately so ScrollView matches DraggableFlatList
+      setDisplayItems(data);
     },
     [reorderHabits],
   );
@@ -159,7 +222,16 @@ export function TodayScreen() {
           </View>
           {isJiggling ? (
             <TouchableOpacity
-              onPress={() => setIsJiggling(false)}
+              onPress={() => {
+                setIsJiggling(false);
+                // Re-sort: unchecked first, checked last, preserving manual order within each group
+                setDisplayItems((prev) =>
+                  [...prev].sort((a, b) => {
+                    if (a.isCompleted === b.isCompleted) return 0;
+                    return a.isCompleted ? 1 : -1;
+                  })
+                );
+              }}
               activeOpacity={0.7}
               className="px-4 h-9 rounded-full bg-primary dark:bg-primary-dark justify-center items-center mt-1"
             >
@@ -184,17 +256,53 @@ export function TodayScreen() {
         </View>
       </View>
 
-      <DraggableFlatList
-        key={animKey}
-        data={todayItems}
-        keyExtractor={(item) => item.habitId}
-        renderItem={renderItem}
-        onDragEnd={handleDragEnd}
-        activationDistance={isJiggling ? 5 : 10000}
-        containerStyle={{ flex: 1 }}
-        ListHeaderComponent={<View className="h-3" />}
-        ListFooterComponent={<View className="h-8" />}
-      />
+      <View style={{ flex: 1 }}>
+        {/* Normal mode: ScrollView always mounted to avoid flash */}
+        <ScrollView
+          style={{ flex: 1 }}
+          pointerEvents={isJiggling ? 'none' : 'auto'}
+          scrollEnabled={!isJiggling}
+        >
+          <View className="h-3" />
+          {displayItems.map((item, index) => (
+            <Animated.View key={item.habitId} layout={LinearTransition.duration(350)}>
+              <HabitCard
+                item={item}
+                index={index}
+                onCheckIn={handleCheckIn}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+                isJiggling={false}
+                onLongPress={() => setIsJiggling(true)}
+              />
+            </Animated.View>
+          ))}
+          <View className="h-8" />
+        </ScrollView>
+
+        {/* Jiggle mode: DraggableFlatList always mounted, hidden when inactive */}
+        <View
+          pointerEvents={isJiggling ? 'auto' : 'none'}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: colorScheme === 'dark' ? '#111111' : '#FFFFFF',
+              opacity: isJiggling ? 1 : 0,
+            },
+          ]}
+        >
+          <DraggableFlatList
+            data={displayItems}
+            keyExtractor={(item) => item.habitId}
+            renderItem={renderItem}
+            onDragEnd={handleDragEnd}
+            activationDistance={5}
+            containerStyle={{ flex: 1 }}
+            ListHeaderComponent={<View className="h-3" />}
+            ListFooterComponent={<View className="h-8" />}
+          />
+        </View>
+      </View>
     </SafeAreaView>
   );
 }

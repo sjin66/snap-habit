@@ -278,14 +278,14 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.7}
-        className={`w-[38px] h-[38px] rounded-full justify-center items-center overflow-hidden ${
+        className={`w-[46px] h-[46px] rounded-full justify-center items-center overflow-hidden ${
           item.isCompleted ? 'bg-primary dark:bg-primary-dark' : ''
         }`}
       >
         {item.isCompleted ? (
-          <Ionicons name="checkmark" size={20} color={bgColor} />
+          <Ionicons name="checkmark" size={24} color={bgColor} />
         ) : (
-          <Svg width={38} height={38} className="absolute">
+          <Svg width={46} height={46} className="absolute">
             <Defs>
               <RadialGradient id="grad" cx="50%" cy="50%" r="50%">
                 <Stop offset="0%" stopColor={primaryColor} stopOpacity={0.18} />
@@ -293,8 +293,8 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
                 <Stop offset="100%" stopColor={primaryColor} stopOpacity={0} />
               </RadialGradient>
             </Defs>
-            <Circle cx={19} cy={19} r={19} fill="url(#grad)" />
-            <Circle cx={19} cy={19} r={17.5} fill="none" stroke={primaryColor} strokeWidth={1.5} opacity={0.3} />
+            <Circle cx={23} cy={23} r={23} fill="url(#grad)" />
+            <Circle cx={23} cy={23} r={21.5} fill="none" stroke={primaryColor} strokeWidth={1.5} opacity={0.3} />
           </Svg>
         )}
       </TouchableOpacity>
