@@ -1,4 +1,6 @@
 PODS:
+  - EXApplication (55.0.8):
+    - ExpoModulesCore
   - EXConstants (55.0.7):
     - ExpoModulesCore
   - Expo (55.0.4):
@@ -38,7 +40,7 @@ PODS:
     - ExpoModulesCore
   - ExpoLogBox (55.0.7):
     - React-Core
-  - ExpoModulesCore (55.0.13):
+  - ExpoModulesCore (55.0.14):
     - ExpoModulesJSI
     - hermes-engine
     - RCTRequired
@@ -63,11 +65,13 @@ PODS:
     - ReactNativeDependencies
     - RNWorklets
     - Yoga
-  - ExpoModulesJSI (55.0.13):
+  - ExpoModulesJSI (55.0.14):
     - hermes-engine
     - React-Core
     - React-runtimescheduler
     - ReactCommon
+  - ExpoNotifications (55.0.11):
+    - ExpoModulesCore
   - ExpoSQLite (55.0.10):
     - ExpoModulesCore
   - FBLazyVector (0.83.2)
@@ -2204,6 +2208,7 @@ PODS:
   - Yoga (0.0.0)
 
 DEPENDENCIES:
+  - EXApplication (from `../node_modules/expo-application/ios`)
   - EXConstants (from `../node_modules/expo-constants/ios`)
   - Expo (from `../node_modules/expo`)
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
@@ -2214,6 +2219,7 @@ DEPENDENCIES:
   - "ExpoLogBox (from `../node_modules/@expo/log-box`)"
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoModulesJSI (from `../node_modules/expo-modules-core`)
+  - ExpoNotifications (from `../node_modules/expo-notifications/ios`)
   - ExpoSQLite (from `../node_modules/expo-sqlite/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -2298,6 +2304,8 @@ DEPENDENCIES:
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 EXTERNAL SOURCES:
+  EXApplication:
+    :path: "../node_modules/expo-application/ios"
   EXConstants:
     :path: "../node_modules/expo-constants/ios"
   Expo:
@@ -2318,6 +2326,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-modules-core"
   ExpoModulesJSI:
     :path: "../node_modules/expo-modules-core"
+  ExpoNotifications:
+    :path: "../node_modules/expo-notifications/ios"
   ExpoSQLite:
     :path: "../node_modules/expo-sqlite/ios"
   FBLazyVector:
@@ -2483,6 +2493,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  EXApplication: b86f81225a9cd817cfe86a79655b9829f12629db
   EXConstants: b3c63be5f8648e4ab8e6ff5099b62f629247f969
   Expo: d592aa311ef87e4176c61f851b127c4f2e38308e
   ExpoAsset: bdc7bc21fe25d197c3aa7547e14c12c42087d9c9
@@ -2491,8 +2502,9 @@ SPEC CHECKSUMS:
   ExpoFont: 1aa465cf9f8ac6b670405becba8b15473581b2dd
   ExpoKeepAwake: 7f3b28c361c37389b18841bb52a58003b39fcb33
   ExpoLogBox: 89b634d5a8a64c4a6a7caad8f9985a28463c7002
-  ExpoModulesCore: 8934d83ba557344022eff47658dd43d197cb481e
-  ExpoModulesJSI: 59a126dc51164e603242ee9a38c19339c5c79da0
+  ExpoModulesCore: a57a0a1e39caa9ad5f76c8477b831ee32fbeddfc
+  ExpoModulesJSI: a554588f3260ee3c44a3e7f4a8151c2b9ffdb024
+  ExpoNotifications: 288a595b8805089d1e3c1fd5307a87d39f271021
   ExpoSQLite: 77506d3d056c57118280d1e2a2d76cc06e4926b3
   FBLazyVector: 32e9ed0301d0fcbc1b2b341dd7fcbf291f51eb83
   hermes-engine: 17fc3186b8e622b12fb56002c45815c78d1ed032

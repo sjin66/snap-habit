@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { cancelHabitReminder } from '../services/notifications';
 import DraggableFlatList, {
   RenderItemParams,
   ScaleDecorator,
@@ -81,6 +82,7 @@ export function TodayScreen() {
 
   const handleDelete = useCallback(
     (habitId: string) => {
+      cancelHabitReminder(habitId);
       deleteHabit(habitId);
     },
     [deleteHabit],

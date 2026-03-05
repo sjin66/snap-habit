@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,19 @@ import {
   TextInput,
   Switch,
   useColorScheme,
+  Alert,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useHabitStore } from '../stores/habitStore';
+import {
+  requestPermissions,
+  scheduleHabitReminder,
+  cancelHabitReminder,
+} from '../services/notifications';
 import type { FrequencyConfig } from '@types/habit';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import WheelPicker from '../components/WheelPicker';
 
 // ─── 可选图标列表 ──────────────────────────────────────
 const ICONS: React.ComponentProps<typeof Ionicons>['name'][] = [
@@ -42,6 +49,10 @@ const UNITS = [
   { key: 'ml', label: 'ml', singular: 'ml' },
   { key: 'cal', label: 'cal', singular: 'cal' },
 ];
+
+// ─── 时间选择数据 ──────────────────────────────────────
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
 
 // ─── 星期几常量 ─────────────────────────────────────────
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -84,7 +95,19 @@ export function NewHabitScreen() {
       ? editHabit.frequency.daysOfWeek
       : [1, 2, 3, 4, 5],
   );
-  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(!!editHabit?.reminderTime);
+  const [reminderHour, setReminderHour] = useState(() => {
+    if (editHabit?.reminderTime) {
+      return parseInt(editHabit.reminderTime.split(':')[0], 10);
+    }
+    return 9;
+  });
+  const [reminderMinute, setReminderMinute] = useState(() => {
+    if (editHabit?.reminderTime) {
+      return parseInt(editHabit.reminderTime.split(':')[1], 10);
+    }
+    return 0;
+  });
 
   const iconScrollRef = useRef<ScrollView>(null);
   const colorScrollRef = useRef<ScrollView>(null);
@@ -129,12 +152,34 @@ export function NewHabitScreen() {
     );
   };
 
-  const handleCreate = () => {
+  const handleReminderToggle = async (value: boolean) => {
+    if (value) {
+      const granted = await requestPermissions();
+      if (!granted) {
+        Alert.alert(
+          'Notifications Disabled',
+          'Please enable notifications in Settings to use reminders.',
+        );
+        return;
+      }
+    }
+    setReminderEnabled(value);
+  };
+
+  const handleCreate = async () => {
     if (!name.trim()) return;
     const frequency: FrequencyConfig =
       freqType === 'daily'
         ? { type: 'daily' }
         : { type: 'weekly', daysOfWeek: selectedDays };
+
+    const reminderTime = reminderEnabled
+      ? `${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`
+      : undefined;
+
+    const habitId = isEditing && preset.editHabitId
+      ? preset.editHabitId
+      : Date.now().toString();
 
     if (isEditing && preset.editHabitId) {
       updateHabit(preset.editHabitId, {
@@ -145,10 +190,11 @@ export function NewHabitScreen() {
         frequency,
         dailyTarget,
         unit,
+        reminderTime,
       });
     } else {
       addHabit({
-        id: Date.now().toString(),
+        id: habitId,
         name: name.trim(),
         icon: selectedIcon,
         color: selectedColor,
@@ -156,9 +202,18 @@ export function NewHabitScreen() {
         frequency,
         dailyTarget,
         unit,
+        reminderTime,
         createdAt: new Date().toISOString(),
       });
     }
+
+    // Schedule or cancel notification
+    if (reminderTime) {
+      await scheduleHabitReminder(habitId, name.trim(), reminderTime);
+    } else {
+      await cancelHabitReminder(habitId);
+    }
+
     navigation.popToTop();
   };
 
@@ -449,11 +504,35 @@ export function NewHabitScreen() {
             </View>
             <Switch
               value={reminderEnabled}
-              onValueChange={setReminderEnabled}
+              onValueChange={handleReminderToggle}
               trackColor={{ false: isDark ? '#2F2F2F' : '#E5E5E5', true: '#141414' }}
               thumbColor="#FFFFFF"
             />
           </View>
+
+          {/* Time picker */}
+          {reminderEnabled && (
+            <View className="mt-3 pt-3 border-t border-border dark:border-border-dark">
+              <View className="flex-row items-center justify-center">
+                <WheelPicker
+                  data={HOURS}
+                  selectedIndex={reminderHour}
+                  onChange={setReminderHour}
+                  width={64}
+                />
+                <Text className="text-2xl font-bold mx-1 text-foreground dark:text-foreground-dark">:</Text>
+                <WheelPicker
+                  data={MINUTES}
+                  selectedIndex={MINUTES.indexOf(String(reminderMinute).padStart(2, '0'))}
+                  onChange={(i) => setReminderMinute(parseInt(MINUTES[i], 10))}
+                  width={64}
+                />
+              </View>
+              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark text-center mt-1">
+                Daily reminder at {String(reminderHour).padStart(2, '0')}:{String(reminderMinute).padStart(2, '0')}
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
