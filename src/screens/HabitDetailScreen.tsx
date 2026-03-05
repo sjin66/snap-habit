@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Svg, { Circle } from 'react-native-svg';
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedProps,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { useHabitStore } from '../stores/habitStore';
 import { getEntriesByHabitAndRange } from '../services/database';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -30,22 +37,85 @@ function daysAgo(n: number): Date {
   return d;
 }
 
-/** Build real 14-day history from DB entries */
-function buildHistory(habitId: string): ('done' | 'missed')[] {
-  const today = formatDate(new Date());
-  const start = formatDate(daysAgo(13));
-  const entries = getEntriesByHabitAndRange(habitId, start, today);
+/** A single calendar day cell */
+type CalendarDay = {
+  date: string;
+  day: number;
+  status: 'done' | 'missed' | 'future' | 'before';
+  isToday: boolean;
+};
+
+const WEEKDAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+/** Build a full monthly calendar for the current month */
+function buildMonthCalendar(
+  habitId: string,
+  createdAt: string,
+): { days: (CalendarDay | null)[]; monthLabel: string; successRate: number } {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const todayStr = formatDate(now);
+  const createdDate = (createdAt || '').split('T')[0];
+
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDow = (firstDay.getDay() + 6) % 7; // 0=Mon
+
+  const monthStart = formatDate(firstDay);
+  const monthEnd = formatDate(new Date(year, month, daysInMonth));
+  const entries = getEntriesByHabitAndRange(habitId, monthStart, monthEnd);
   const completedDates = new Set(entries.map((e) => e.date));
 
-  return Array.from({ length: 14 }, (_, i) => {
-    const dateStr = formatDate(daysAgo(13 - i));
-    return completedDates.has(dateStr) ? 'done' : 'missed';
-  });
+  const days: (CalendarDay | null)[] = [];
+
+  // leading blank cells
+  for (let i = 0; i < firstDow; i++) days.push(null);
+
+  let doneCount = 0;
+  let expectedCount = 0;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = formatDate(new Date(year, month, d));
+    const isToday = dateStr === todayStr;
+    const isFuture = dateStr > todayStr;
+    const isBefore = dateStr < createdDate;
+
+    let status: CalendarDay['status'];
+    if (isFuture) {
+      status = 'future';
+    } else if (isBefore) {
+      status = 'before';
+    } else if (completedDates.has(dateStr)) {
+      status = 'done';
+      doneCount++;
+      expectedCount++;
+    } else {
+      status = 'missed';
+      expectedCount++;
+    }
+
+    days.push({ date: dateStr, day: d, status, isToday });
+  }
+
+  // trailing blank cells to fill last row
+  while (days.length % 7 !== 0) days.push(null);
+
+  return {
+    days,
+    monthLabel: `${MONTH_NAMES[month]} ${year}`,
+    successRate: expectedCount > 0 ? Math.round((doneCount / expectedCount) * 100) : 0,
+  };
 }
 
-const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-// Circular progress component
+// Circular progress component with ring animation
 function CircularProgress({
   completed,
   total,
@@ -62,7 +132,20 @@ function CircularProgress({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = total > 0 ? completed / total : 0;
-  const strokeDashoffset = circumference * (1 - progress);
+
+  const animatedProgress = useSharedValue(0);
+
+  useEffect(() => {
+    animatedProgress.value = 0;
+    animatedProgress.value = withTiming(progress, {
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [progress]);
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - animatedProgress.value),
+  }));
 
   return (
     <View className="items-center justify-center" style={{ width: size, height: size }}>
@@ -77,7 +160,7 @@ function CircularProgress({
           fill="none"
         />
         {/* Progress arc */}
-        <Circle
+        <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -85,17 +168,17 @@ function CircularProgress({
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={`${circumference}`}
-          strokeDashoffset={strokeDashoffset}
+          animatedProps={animatedProps}
           strokeLinecap="round"
         />
       </Svg>
       {/* Center text */}
       <View className="absolute items-center">
         <Text className="text-[42px] font-bold text-foreground dark:text-foreground-dark">
-          {completed}<Text className="text-muted-foreground dark:text-muted-foreground-dark font-light">/{total}</Text>
+          {total > 0 ? Math.round((completed / total) * 100) : 0}<Text className="text-2xl text-muted-foreground dark:text-muted-foreground-dark font-light">%</Text>
         </Text>
         <Text className="text-xs font-semibold tracking-widest text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
-          SESSIONS
+          LAST 30 DAYS
         </Text>
       </View>
     </View>
@@ -112,8 +195,11 @@ export function HabitDetailScreen() {
   const { habits, todayEntries, checkIn } = useHabitStore();
   const habit = habits.find((h) => h.id === habitId);
 
-  // Real data from DB
-  const history = useMemo(() => buildHistory(habitId), [habitId, todayEntries]);
+  // Monthly calendar data
+  const calendar = useMemo(
+    () => buildMonthCalendar(habitId, habit?.createdAt || ''),
+    [habitId, habit, todayEntries],
+  );
 
   const streak = useMemo(() => {
     // Count consecutive days completed going backward from today
@@ -139,19 +225,27 @@ export function HabitDetailScreen() {
     return new Set(entries.map((e) => e.date)).size;
   }, [habitId, todayEntries]);
 
-  const successRate = useMemo(() => {
-    const done = history.filter((d) => d === 'done').length;
-    return Math.round((done / 14) * 100);
-  }, [history]);
-
   const today = formatDate(new Date());
   const isCompletedToday = todayEntries.some(
     (e) => e.habitId === habitId && e.date === today,
   );
 
-  // Sessions: dailyTarget-based, 1 session = 1 check-in per day
-  const sessionsTotal = habit?.dailyTarget ?? 1;
-  const sessionsCompleted = isCompletedToday ? sessionsTotal : 0;
+  // 30-day completion rate
+  const thirtyDayRate = useMemo(() => {
+    const todayStr = formatDate(new Date());
+    const thirtyAgo = formatDate(daysAgo(29));
+    const createdDate = (habit?.createdAt || '').split('T')[0];
+    const effectiveStart = createdDate > thirtyAgo ? createdDate : thirtyAgo;
+    if (effectiveStart > todayStr) return { completed: 0, total: 0, percent: 0 };
+    const msPerDay = 86400000;
+    const expectedDays = Math.max(1, Math.floor(
+      (new Date(todayStr + 'T00:00:00').getTime() - new Date(effectiveStart + 'T00:00:00').getTime()) / msPerDay
+    ) + 1);
+    const entries = getEntriesByHabitAndRange(habitId, effectiveStart, todayStr);
+    const completedDays = new Set(entries.map((e) => e.date)).size;
+    const percent = Math.round((completedDays / expectedDays) * 100);
+    return { completed: completedDays, total: expectedDays, percent };
+  }, [habitId, habit, todayEntries]);
 
   if (!habit) {
     return (
@@ -171,7 +265,12 @@ export function HabitDetailScreen() {
         <Text className="text-lg font-semibold text-foreground dark:text-foreground-dark">
           Details
         </Text>
-        <TouchableOpacity hitSlop={12}>
+        <TouchableOpacity
+          hitSlop={12}
+          onPress={() =>
+            (navigation as any).navigate('NewHabit', { editHabitId: habitId })
+          }
+        >
           <Text className="text-base font-medium" style={{ color: habit.color }}>
             Edit
           </Text>
@@ -184,7 +283,7 @@ export function HabitDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Icon + Name */}
-        <View className="items-center pt-4 pb-2">
+        <Animated.View entering={FadeInDown.duration(400)} className="items-center pt-4 pb-2">
           <View
             className="w-20 h-20 rounded-2xl items-center justify-center mb-3"
             style={{ backgroundColor: habit.color + '1A' }}
@@ -194,16 +293,16 @@ export function HabitDetailScreen() {
           <Text className="text-2xl font-bold text-foreground dark:text-foreground-dark">
             {habit.name}
           </Text>
-        </View>
+        </Animated.View>
 
         {/* Stats row */}
-        <View className="flex-row items-center justify-center mt-3 mb-6">
+        <Animated.View entering={FadeInDown.delay(60).duration(400)} className="flex-row items-center justify-center mt-3 mb-6">
           <View className="items-center px-6">
             <View className="flex-row items-center">
               <Text className="text-2xl font-bold text-foreground dark:text-foreground-dark">
                 {streak}
               </Text>
-              <Text className="ml-1 text-lg">🔥</Text>
+              <Ionicons name="flame" size={20} color="#F97316" style={{ marginLeft: 2 }} />
             </View>
             <Text className="text-[10px] font-semibold tracking-widest text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
               CURRENT STREAK
@@ -211,138 +310,101 @@ export function HabitDetailScreen() {
           </View>
           <View className="w-px h-8 bg-border dark:bg-border-dark" />
           <View className="items-center px-6">
-            <Text className="text-2xl font-bold text-foreground dark:text-foreground-dark">
-              {totalCompletions}
-            </Text>
+            <View className="flex-row items-center">
+              <Text className="text-2xl font-bold text-foreground dark:text-foreground-dark">
+                {totalCompletions}
+              </Text>
+              <Ionicons name="trophy-sharp" size={20} color="#F59E0B" style={{ marginLeft: 2 }} />
+            </View>
             <Text className="text-[10px] font-semibold tracking-widest text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
               TOTAL COMPLETIONS
             </Text>
           </View>
-        </View>
+        </Animated.View>
 
-        {/* Circular progress */}
-        <View className="items-center py-4">
+        {/* Circular progress — 30-day completion rate */}
+        <Animated.View entering={FadeInDown.delay(120).duration(400)} className="items-center py-4">
           <CircularProgress
-            completed={sessionsCompleted}
-            total={sessionsTotal}
+            completed={thirtyDayRate.completed}
+            total={thirtyDayRate.total}
             color={habit.color}
           />
-        </View>
+        </Animated.View>
 
-        {/* Complete Session button */}
-        <View className="px-5 mt-4 mb-6">
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => {
-              if (!isCompletedToday) checkIn(habitId);
-            }}
-            className="rounded-2xl py-4 items-center"
-            style={{
-              backgroundColor: isCompletedToday ? '#A3A3A3' : habit.color,
-            }}
-          >
-            <Text className="text-base font-semibold text-white">
-              {isCompletedToday ? 'Completed' : 'Complete Session'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Last 14 Days */}
-        <View className="mx-5 p-4 rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark">
+        {/* Monthly Calendar */}
+        <Animated.View entering={FadeInDown.delay(180).duration(400)} className="mx-5 px-4 pt-4">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-xs font-bold tracking-widest text-foreground dark:text-foreground-dark">
-              LAST 14 DAYS
+              {calendar.monthLabel.toUpperCase()}
             </Text>
             <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
-              {successRate}% Success
+              {calendar.successRate}% Success
             </Text>
           </View>
 
-          {/* Day labels */}
-          <View className="flex-row justify-between mb-2 px-1">
-            {DAY_LABELS.map((d, i) => (
-              <View key={i} className="w-9 items-center">
-                <Text className="text-xs font-medium text-muted-foreground dark:text-muted-foreground-dark">
+          {/* Weekday headers */}
+          <View className="flex-row mb-1">
+            {WEEKDAY_LABELS.map((d, i) => (
+              <View key={i} style={{ flex: 1 }} className="items-center py-1">
+                <Text className="text-xs font-medium text-foreground dark:text-foreground-dark">
                   {d}
                 </Text>
               </View>
             ))}
           </View>
 
-          {/* Week 1 (days 0-6) */}
-          <View className="flex-row justify-between mb-2 px-1">
-            {history.slice(0, 7).map((status, i) => (
-              <View key={i} className="w-9 h-9 items-center justify-center">
-                {status === 'done' ? (
+          {/* Day grid */}
+          {Array.from(
+            { length: Math.ceil(calendar.days.length / 7) },
+            (_, row) => (
+              <View key={row} className="flex-row">
+                {calendar.days.slice(row * 7, row * 7 + 7).map((cell, col) => (
                   <View
-                    className="w-7 h-7 rounded-full items-center justify-center"
-                    style={{ backgroundColor: habit.color }}
+                    key={col}
+                    style={{ flex: 1 }}
+                    className="items-center justify-center py-[5px]"
                   >
-                    <View className="w-2.5 h-2.5 rounded-full bg-white" />
+                    {cell == null ? (
+                      <View className="w-8 h-8" />
+                    ) : cell.status === 'done' ? (
+                      <View
+                        className="w-8 h-8 rounded-full items-center justify-center"
+                        style={{
+                          backgroundColor: habit.color,
+                          borderWidth: cell.isToday ? 2 : 0,
+                          borderColor: cell.isToday ? isDark ? '#FAFAFA' : '#0A0A0A' : undefined,
+                        }}
+                      >
+                        <Text className="text-xs font-semibold text-white">
+                          {cell.day}
+                        </Text>
+                      </View>
+                    ) : cell.status === 'missed' ? (
+                      <View
+                        className="w-8 h-8 rounded-full items-center justify-center"
+                        style={{
+                          borderWidth: cell.isToday ? 1.5 : 0,
+                          borderColor: cell.isToday ? (isDark ? '#FAFAFA' : '#0A0A0A') : undefined,
+                        }}
+                      >
+                        <Text className="text-xs font-medium text-foreground dark:text-foreground-dark">
+                          {cell.day}
+                        </Text>
+                      </View>
+                    ) : (
+                      /* future or before creation */
+                      <View className="w-8 h-8 rounded-full items-center justify-center opacity-30">
+                        <Text className="text-xs font-medium text-foreground dark:text-foreground-dark">
+                          {cell.day}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                ) : (
-                  <View className="w-7 h-7 rounded-full border-[1.5px] border-destructive" />
-                )}
+                ))}
               </View>
-            ))}
-          </View>
-
-          {/* Week 2 (days 7-13) */}
-          <View className="flex-row justify-between mb-3 px-1">
-            {history.slice(7, 14).map((status, i) => (
-              <View key={i} className="w-9 h-9 items-center justify-center">
-                {i === 6 ? (
-                  // Today marker
-                  status === 'done' ? (
-                    <View
-                      className="w-7 h-7 rounded-full items-center justify-center border-[1.5px]"
-                      style={{ backgroundColor: habit.color, borderColor: habit.color }}
-                    >
-                      <View className="w-2.5 h-2.5 rounded-full bg-white" />
-                    </View>
-                  ) : (
-                    <View
-                      className="w-7 h-7 rounded-full border-[1.5px] border-dashed items-center justify-center"
-                      style={{ borderColor: habit.color }}
-                    >
-                      <Text style={{ color: habit.color, fontSize: 7, fontWeight: '700', letterSpacing: 0.5 }}>
-                        TODAY
-                      </Text>
-                    </View>
-                  )
-                ) : status === 'done' ? (
-                  <View
-                    className="w-7 h-7 rounded-full items-center justify-center"
-                    style={{ backgroundColor: habit.color }}
-                  >
-                    <View className="w-2.5 h-2.5 rounded-full bg-white" />
-                  </View>
-                ) : (
-                  <View className="w-7 h-7 rounded-full border-[1.5px] border-destructive" />
-                )}
-              </View>
-            ))}
-          </View>
-
-          {/* Legend */}
-          <View className="flex-row items-center justify-center gap-5">
-            <View className="flex-row items-center">
-              <View
-                className="w-2.5 h-2.5 rounded-full mr-1.5"
-                style={{ backgroundColor: habit.color }}
-              />
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark font-medium">
-                DONE
-              </Text>
-            </View>
-            <View className="flex-row items-center">
-              <View className="w-2.5 h-2.5 rounded-full border border-destructive mr-1.5" />
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark font-medium">
-                MISSED
-              </Text>
-            </View>
-          </View>
-        </View>
+            ),
+          )}
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
