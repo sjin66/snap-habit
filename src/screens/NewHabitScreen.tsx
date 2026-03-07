@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Switch,
   useColorScheme,
   Alert,
 } from 'react-native';
@@ -14,8 +13,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useHabitStore } from '../stores/habitStore';
 import {
   requestPermissions,
-  scheduleHabitReminder,
-  cancelHabitReminder,
+  scheduleHabitReminders,
+  cancelHabitReminders,
 } from '../services/notifications';
 import type { FrequencyConfig } from '@types/habit';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -95,19 +94,12 @@ export function NewHabitScreen() {
       ? editHabit.frequency.daysOfWeek
       : [1, 2, 3, 4, 5],
   );
-  const [reminderEnabled, setReminderEnabled] = useState(!!editHabit?.reminderTime);
-  const [reminderHour, setReminderHour] = useState(() => {
-    if (editHabit?.reminderTime) {
-      return parseInt(editHabit.reminderTime.split(':')[0], 10);
-    }
-    return 9;
-  });
-  const [reminderMinute, setReminderMinute] = useState(() => {
-    if (editHabit?.reminderTime) {
-      return parseInt(editHabit.reminderTime.split(':')[1], 10);
-    }
-    return 0;
-  });
+  const [reminders, setReminders] = useState<string[]>(
+    editHabit?.reminders ?? [],
+  );
+  const [editingReminderIndex, setEditingReminderIndex] = useState<number | null>(null);
+  const [pickerHour, setPickerHour] = useState(9);
+  const [pickerMinute, setPickerMinute] = useState(0);
 
   const iconScrollRef = useRef<ScrollView>(null);
   const colorScrollRef = useRef<ScrollView>(null);
@@ -152,19 +144,56 @@ export function NewHabitScreen() {
     );
   };
 
-  const handleReminderToggle = async (value: boolean) => {
-    if (value) {
-      const granted = await requestPermissions();
-      if (!granted) {
-        Alert.alert(
-          'Notifications Disabled',
-          'Please enable notifications in Settings to use reminders.',
-        );
-        return;
-      }
+  const handleAddReminder = async () => {
+    const granted = await requestPermissions();
+    if (!granted) {
+      Alert.alert(
+        'Notifications Disabled',
+        'Please enable notifications in Settings to use reminders.',
+      );
+      return;
     }
-    setReminderEnabled(value);
+    // Default new reminder to 09:00
+    const newTime = '09:00';
+    const newIndex = reminders.length;
+    setReminders((prev) => [...prev, newTime]);
+    // Open picker for the new reminder
+    setPickerHour(9);
+    setPickerMinute(0);
+    setEditingReminderIndex(newIndex);
   };
+
+  const handleRemoveReminder = (index: number) => {
+    setReminders((prev) => prev.filter((_, i) => i !== index));
+    if (editingReminderIndex === index) {
+      setEditingReminderIndex(null);
+    } else if (editingReminderIndex !== null && editingReminderIndex > index) {
+      setEditingReminderIndex(editingReminderIndex - 1);
+    }
+  };
+
+  const handleTapReminder = (index: number) => {
+    if (editingReminderIndex === index) {
+      setEditingReminderIndex(null);
+      return;
+    }
+    const [h, m] = reminders[index].split(':').map(Number);
+    setPickerHour(h);
+    setPickerMinute(m);
+    setEditingReminderIndex(index);
+  };
+
+  // Sync picker changes back to reminders array
+  useEffect(() => {
+    if (editingReminderIndex === null) return;
+    const timeStr = `${String(pickerHour).padStart(2, '0')}:${String(pickerMinute).padStart(2, '0')}`;
+    setReminders((prev) => {
+      if (editingReminderIndex >= prev.length) return prev;
+      const next = [...prev];
+      next[editingReminderIndex] = timeStr;
+      return next;
+    });
+  }, [pickerHour, pickerMinute]);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -173,9 +202,7 @@ export function NewHabitScreen() {
         ? { type: 'daily' }
         : { type: 'weekly', daysOfWeek: selectedDays };
 
-    const reminderTime = reminderEnabled
-      ? `${String(reminderHour).padStart(2, '0')}:${String(reminderMinute).padStart(2, '0')}`
-      : undefined;
+    const habitReminders = reminders.length > 0 ? reminders : undefined;
 
     const habitId = isEditing && preset.editHabitId
       ? preset.editHabitId
@@ -190,7 +217,7 @@ export function NewHabitScreen() {
         frequency,
         dailyTarget,
         unit,
-        reminderTime,
+        reminders: habitReminders,
       });
     } else {
       addHabit({
@@ -202,16 +229,16 @@ export function NewHabitScreen() {
         frequency,
         dailyTarget,
         unit,
-        reminderTime,
+        reminders: habitReminders,
         createdAt: new Date().toISOString(),
       });
     }
 
-    // Schedule or cancel notification
-    if (reminderTime) {
-      await scheduleHabitReminder(habitId, name.trim(), reminderTime);
+    // Schedule or cancel notifications
+    if (habitReminders && habitReminders.length > 0) {
+      await scheduleHabitReminders(habitId, name.trim(), habitReminders);
     } else {
-      await cancelHabitReminder(habitId);
+      await cancelHabitReminders(habitId);
     }
 
     navigation.popToTop();
@@ -502,36 +529,68 @@ export function NewHabitScreen() {
                 Reminders
               </Text>
             </View>
-            <Switch
-              value={reminderEnabled}
-              onValueChange={handleReminderToggle}
-              trackColor={{ false: isDark ? '#2F2F2F' : '#E5E5E5', true: '#141414' }}
-              thumbColor="#FFFFFF"
-            />
+            <TouchableOpacity onPress={handleAddReminder} hitSlop={12}>
+              <Ionicons name="add-circle" size={26} color={isDark ? '#B4B4B4' : '#8E8E8E'} />
+            </TouchableOpacity>
           </View>
 
-          {/* Time picker */}
-          {reminderEnabled && (
+          {/* Reminder list */}
+          {reminders.length > 0 && (
             <View className="mt-3 pt-3 border-t border-border dark:border-border-dark">
-              <View className="flex-row items-center justify-center">
-                <WheelPicker
-                  data={HOURS}
-                  selectedIndex={reminderHour}
-                  onChange={setReminderHour}
-                  width={64}
-                />
-                <Text className="text-2xl font-bold mx-1 text-foreground dark:text-foreground-dark">:</Text>
-                <WheelPicker
-                  data={MINUTES}
-                  selectedIndex={MINUTES.indexOf(String(reminderMinute).padStart(2, '0'))}
-                  onChange={(i) => setReminderMinute(parseInt(MINUTES[i], 10))}
-                  width={64}
-                />
-              </View>
-              <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark text-center mt-1">
-                Daily reminder at {String(reminderHour).padStart(2, '0')}:{String(reminderMinute).padStart(2, '0')}
-              </Text>
+              {reminders.map((time, index) => (
+                <View key={index}>
+                  <View className="flex-row items-center justify-between py-2.5">
+                    <TouchableOpacity
+                      onPress={() => handleTapReminder(index)}
+                      className="flex-1 flex-row items-center"
+                      hitSlop={8}
+                    >
+                      <Ionicons
+                        name="time-outline"
+                        size={18}
+                        color={editingReminderIndex === index ? selectedColor : (isDark ? '#B4B4B4' : '#8E8E8E')}
+                      />
+                      <Text
+                        className="text-base ml-2"
+                        style={{ color: editingReminderIndex === index ? selectedColor : (isDark ? '#FAFAFA' : '#0A0A0A') }}
+                      >
+                        {time}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleRemoveReminder(index)} hitSlop={12}>
+                      <Ionicons name="remove-circle" size={22} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Inline picker for the selected reminder */}
+                  {editingReminderIndex === index && (
+                    <View className="py-2">
+                      <View className="flex-row items-center justify-center">
+                        <WheelPicker
+                          data={HOURS}
+                          selectedIndex={pickerHour}
+                          onChange={setPickerHour}
+                          width={64}
+                        />
+                        <Text className="text-2xl font-bold mx-1 text-foreground dark:text-foreground-dark">:</Text>
+                        <WheelPicker
+                          data={MINUTES}
+                          selectedIndex={MINUTES.indexOf(String(pickerMinute).padStart(2, '0'))}
+                          onChange={(i) => setPickerMinute(parseInt(MINUTES[i], 10))}
+                          width={64}
+                        />
+                      </View>
+                    </View>
+                  )}
+                </View>
+              ))}
             </View>
+          )}
+
+          {reminders.length === 0 && (
+            <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-2">
+              No reminders set
+            </Text>
           )}
         </View>
       </ScrollView>

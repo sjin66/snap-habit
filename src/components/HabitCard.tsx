@@ -302,9 +302,14 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
 
       {/* Check button / Rest indicator */}
       {isRest ? (
-        <View className="w-[46px] h-[46px] rounded-full justify-center items-center">
+        <TouchableOpacity
+          onPress={handlePress}
+          activeOpacity={0.7}
+          className="w-[46px] h-[46px] rounded-full justify-center items-center"
+          style={{ backgroundColor: isDark ? '#2A2A2A' : '#E0E0E0' }}
+        >
           <Ionicons name="moon-outline" size={20} color={mutedColor} />
-        </View>
+        </TouchableOpacity>
       ) : (
       <TouchableOpacity
         onPress={handlePress}

@@ -22,37 +22,47 @@ export async function requestPermissions(): Promise<boolean> {
 }
 
 /**
- * Schedule a daily reminder for a habit.
- * Uses the habitId as the notification identifier so we can cancel later.
+ * Schedule daily reminders for a habit (supports multiple times).
+ * Uses `habit-${habitId}-${index}` as notification identifiers.
  */
-export async function scheduleHabitReminder(
+export async function scheduleHabitReminders(
   habitId: string,
   habitName: string,
-  timeStr: string, // "HH:mm"
+  reminders: string[], // ["HH:mm", ...]
 ): Promise<void> {
-  // Cancel any existing reminder for this habit first
-  await cancelHabitReminder(habitId);
+  // Cancel any existing reminders for this habit first
+  await cancelHabitReminders(habitId);
 
-  const [hours, minutes] = timeStr.split(':').map(Number);
-
-  await Notifications.scheduleNotificationAsync({
-    identifier: `habit-${habitId}`,
-    content: {
-      title: '⏰ Habit Reminder',
-      body: `Time to work on "${habitName}"!`,
-      sound: true,
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: hours,
-      minute: minutes,
-    },
-  });
+  for (let i = 0; i < reminders.length; i++) {
+    const [hours, minutes] = reminders[i].split(':').map(Number);
+    await Notifications.scheduleNotificationAsync({
+      identifier: `habit-${habitId}-${i}`,
+      content: {
+        title: '⏰ Habit Reminder',
+        body: `Time to work on "${habitName}"!`,
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: hours,
+        minute: minutes,
+      },
+    });
+  }
 }
 
-/** Cancel the scheduled reminder for a habit. */
-export async function cancelHabitReminder(habitId: string): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync(`habit-${habitId}`);
+/** Cancel all scheduled reminders for a habit (up to 20 slots). */
+export async function cancelHabitReminders(habitId: string): Promise<void> {
+  // Cancel indexed identifiers (new format)
+  for (let i = 0; i < 20; i++) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(`habit-${habitId}-${i}`);
+    } catch {}
+  }
+  // Also cancel legacy single-reminder identifier
+  try {
+    await Notifications.cancelScheduledNotificationAsync(`habit-${habitId}`);
+  } catch {}
 }
 
 /** Cancel all scheduled notifications. */

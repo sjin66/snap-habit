@@ -13,7 +13,7 @@ import {
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { cancelHabitReminder } from '../services/notifications';
+import { cancelHabitReminders } from '../services/notifications';
 import DraggableFlatList, {
   RenderItemParams,
   ScaleDecorator,
@@ -134,7 +134,7 @@ export function TodayScreen() {
 
   const handleDelete = useCallback(
     (habitId: string) => {
-      cancelHabitReminder(habitId);
+      cancelHabitReminders(habitId);
       deleteHabit(habitId);
     },
     [deleteHabit],

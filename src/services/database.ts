@@ -99,7 +99,7 @@ export function insertHabit(habit: Habit): void {
     habit.frequency.timesPerWeek ?? null,
     habit.dailyTarget ?? 1,
     habit.unit ?? 'times',
-    habit.reminderTime ?? null,
+    habit.reminders && habit.reminders.length > 0 ? JSON.stringify(habit.reminders) : null,
     habit.createdAt,
     habit.archivedAt ?? null,
   );
@@ -117,7 +117,7 @@ export function updateHabitInDB(id: string, updates: Partial<Habit>): void {
   if (updates.note !== undefined) { fields.push('note = ?'); values.push(updates.note); }
   if (updates.dailyTarget !== undefined) { fields.push('daily_target = ?'); values.push(updates.dailyTarget); }
   if (updates.unit !== undefined) { fields.push('unit = ?'); values.push(updates.unit); }
-  if (updates.reminderTime !== undefined) { fields.push('reminder_time = ?'); values.push(updates.reminderTime); }
+  if (updates.reminders !== undefined) { fields.push('reminder_time = ?'); values.push(updates.reminders && updates.reminders.length > 0 ? JSON.stringify(updates.reminders) : null); }
   if (updates.archivedAt !== undefined) { fields.push('archived_at = ?'); values.push(updates.archivedAt); }
   if (updates.frequency) {
     fields.push('frequency_type = ?'); values.push(updates.frequency.type);
@@ -207,6 +207,20 @@ export function deleteEntryByHabitAndDate(habitId: string, date: string): void {
 
 // ─── Row → Model 转换 ──────────────────────────────────
 
+/** Parse reminder_time column: supports JSON array or legacy single "HH:mm" */
+function parseReminders(raw: string | null | undefined): string[] | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    return undefined;
+  } catch {
+    // Legacy single "HH:mm" format
+    if (/^\d{2}:\d{2}$/.test(raw)) return [raw];
+    return undefined;
+  }
+}
+
 function rowToHabit(row: any): Habit {
   const frequency: FrequencyConfig = {
     type: row.frequency_type,
@@ -225,7 +239,7 @@ function rowToHabit(row: any): Habit {
     frequency,
     dailyTarget: row.daily_target ?? 1,
     unit: row.unit ?? 'times',
-    reminderTime: row.reminder_time ?? undefined,
+    reminders: parseReminders(row.reminder_time),
     createdAt: row.created_at,
     archivedAt: row.archived_at ?? undefined,
   };
