@@ -3,6 +3,7 @@
     "name": "SnapHabit",
     "slug": "SnapHabit",
     "version": "1.0.0",
+    "userInterfaceStyle": "automatic",
     "plugins": [
       [
         "expo-notifications",

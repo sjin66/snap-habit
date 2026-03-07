@@ -7,10 +7,12 @@ import {
   useColorScheme,
   ScrollView,
   StyleSheet,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { cancelHabitReminder } from '../services/notifications';
 import DraggableFlatList, {
   RenderItemParams,
@@ -26,6 +28,12 @@ const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
+
+/** Sort order: active → completed → rest */
+const STATUS_ORDER: Record<string, number> = { active: 0, completed: 1, rest: 2 };
+function sortByStatus(a: TodayHabitItem, b: TodayHabitItem): number {
+  return (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0);
+}
 
 function formatDate(): { weekday: string; full: string } {
   const now = new Date();
@@ -43,32 +51,23 @@ export function TodayScreen() {
 
   const [isJiggling, setIsJiggling] = useState(false);
 
-  // Re-trigger entering animations only on tab press (not on stack back navigation)
-  const [animKey, setAnimKey] = useState(0);
-  const isTabPress = useRef(false);
+  // Shared scroll offset tracking
+  const scrollOffsetRef = useRef(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<any>(null);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('tabPress', () => {
-      isTabPress.current = true;
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (isTabPress.current) {
-        setAnimKey((k) => k + 1);
-        isTabPress.current = false;
-      }
-    }, [])
-  );
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
+  }, []);
 
   const todayItems = getTodayItems();
-  const completed = todayItems.filter((h) => h.isCompleted).length;
-  const total = todayItems.length;
+  // Only count active + completed toward progress (exclude rest days)
+  const activeItems = todayItems.filter((h) => h.status !== 'rest');
+  const completed = activeItems.filter((h) => h.isCompleted).length;
+  const total = activeItems.length;
 
   // Stable key for dependency tracking (changes only on actual data change)
-  const itemsKey = todayItems.map((i) => `${i.habitId}:${i.isCompleted}`).join(',');
+  const itemsKey = todayItems.map((i) => `${i.habitId}:${i.isCompleted}:${i.status}`).join(',');
 
   // Display list: sorted unchecked-first, with animated reorder on check-in
   const [displayItems, setDisplayItems] = useState<TodayHabitItem[]>([]);
@@ -95,18 +94,11 @@ export function TodayScreen() {
       );
     } else {
       // No animation pending — sort normally
-      const sorted = [...todayItems].sort((a, b) => {
-        if (a.isCompleted === b.isCompleted) return 0;
-        return a.isCompleted ? 1 : -1;
-      });
+      const sorted = [...todayItems].sort(sortByStatus);
       setDisplayItems(sorted);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsKey]);
-
-  const handleLongPress = useCallback(() => {
-    setIsJiggling(true);
-  }, []);
 
   const handleCheckIn = useCallback(
     (habitId: string) => {
@@ -129,12 +121,11 @@ export function TodayScreen() {
         pendingMoveRef.current = false;
         setDisplayItems((prev) => {
           const updated = prev.map((p) =>
-            p.habitId === habitId ? { ...p, isCompleted: willComplete } : p
+            p.habitId === habitId
+              ? { ...p, isCompleted: willComplete, status: willComplete ? 'completed' as const : (p.status === 'rest' ? 'rest' as const : 'active' as const) }
+              : p
           );
-          return updated.sort((a, b) => {
-            if (a.isCompleted === b.isCompleted) return 0;
-            return a.isCompleted ? 1 : -1;
-          });
+          return updated.sort(sortByStatus);
         });
       }, 400);
     },
@@ -190,7 +181,7 @@ export function TodayScreen() {
         </ScaleDecorator>
       );
     },
-    [handleCheckIn, handleDelete, handleEdit, isJiggling, handleLongPress],
+    [handleCheckIn, handleDelete, handleEdit, isJiggling],
   );
 
   const handleDragEnd = useCallback(
@@ -223,14 +214,21 @@ export function TodayScreen() {
           {isJiggling ? (
             <TouchableOpacity
               onPress={() => {
-                setIsJiggling(false);
-                // Re-sort: unchecked first, checked last, preserving manual order within each group
-                setDisplayItems((prev) =>
-                  [...prev].sort((a, b) => {
-                    if (a.isCompleted === b.isCompleted) return 0;
-                    return a.isCompleted ? 1 : -1;
-                  })
-                );
+                const savedY = scrollOffsetRef.current;
+                // 1. Scroll ScrollView to match position (behind overlay)
+                scrollViewRef.current?.scrollTo({ y: savedY, animated: false });
+
+                requestAnimationFrame(() => {
+                  scrollViewRef.current?.scrollTo({ y: savedY, animated: false });
+                  setTimeout(() => {
+                    // 2. Hide overlay first — ScrollView now visible with old order
+                    setIsJiggling(false);
+                    // 3. Then sort — LinearTransition animates the reorder visibly
+                    requestAnimationFrame(() => {
+                      setDisplayItems((prev) => [...prev].sort(sortByStatus));
+                    });
+                  }, 50);
+                });
               }}
               activeOpacity={0.7}
               className="px-4 h-9 rounded-full bg-primary dark:bg-primary-dark justify-center items-center mt-1"
@@ -259,9 +257,12 @@ export function TodayScreen() {
       <View style={{ flex: 1 }}>
         {/* Normal mode: ScrollView always mounted to avoid flash */}
         <ScrollView
+          ref={scrollViewRef}
           style={{ flex: 1 }}
           pointerEvents={isJiggling ? 'none' : 'auto'}
           scrollEnabled={!isJiggling}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
           <View className="h-3" />
           {displayItems.map((item, index) => (
@@ -273,7 +274,10 @@ export function TodayScreen() {
                 onDelete={handleDelete}
                 onEdit={handleEdit}
                 isJiggling={false}
-                onLongPress={() => setIsJiggling(true)}
+                onLongPress={() => {
+                  flatListRef.current?.scrollToOffset({ offset: scrollOffsetRef.current, animated: false });
+                  setIsJiggling(true);
+                }}
               />
             </Animated.View>
           ))}
@@ -292,12 +296,16 @@ export function TodayScreen() {
           ]}
         >
           <DraggableFlatList
+            ref={flatListRef}
             data={displayItems}
             keyExtractor={(item) => item.habitId}
             renderItem={renderItem}
             onDragEnd={handleDragEnd}
             activationDistance={5}
             containerStyle={{ flex: 1 }}
+            onScrollEndDrag={handleScroll}
+            onMomentumScrollEnd={handleScroll}
+            scrollEventThrottle={16}
             ListHeaderComponent={<View className="h-3" />}
             ListFooterComponent={<View className="h-8" />}
           />

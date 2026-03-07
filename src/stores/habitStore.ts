@@ -37,6 +37,18 @@ const getToday = () => {
   return `${y}-${m}-${d}`;
 };
 
+/** Check if a given date is a rest day for a habit's frequency config */
+function isRestDay(frequency: { type: string; daysOfWeek?: number[] }, date: Date): boolean {
+  if (frequency.type === 'daily') return false;
+  if (frequency.type === 'weekly' || frequency.type === 'custom') {
+    const dow = date.getDay(); // 0=Sun ... 6=Sat
+    if (frequency.daysOfWeek && frequency.daysOfWeek.length > 0) {
+      return !frequency.daysOfWeek.includes(dow);
+    }
+  }
+  return false;
+}
+
 export const useHabitStore = create<HabitState>((set, get) => ({
   habits: [],
   todayEntries: [],
@@ -110,12 +122,16 @@ export const useHabitStore = create<HabitState>((set, get) => ({
   getTodayItems: (): TodayHabitItem[] => {
     const { habits, todayEntries } = get();
     const today = getToday();
+    const todayDate = new Date();
     return habits.map((habit) => {
       const entry = todayEntries.find(
         (e) => e.habitId === habit.id && e.date === today
       );
 
-      // Calculate current streak (consecutive days including today)
+      const rest = isRestDay(habit.frequency, todayDate);
+      const completed = !!entry;
+
+      // Calculate current streak (consecutive active days, skipping rest days)
       let streak = 0;
       const d = new Date();
       for (let i = 0; i < 365; i++) {
@@ -123,6 +139,13 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         const dateStr = `${y}-${m}-${day}`;
+
+        // Skip rest days — they don't break or count toward streak
+        if (isRestDay(habit.frequency, new Date(d))) {
+          d.setDate(d.getDate() - 1);
+          continue;
+        }
+
         const dayEntries = getEntriesByHabitAndRange(habit.id, dateStr, dateStr);
         if (dayEntries.length > 0) {
           streak++;
@@ -136,6 +159,16 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         d.setDate(d.getDate() - 1);
       }
 
+      // Determine status
+      let status: 'active' | 'completed' | 'rest';
+      if (completed) {
+        status = 'completed';
+      } else if (rest) {
+        status = 'rest';
+      } else {
+        status = 'active';
+      }
+
       return {
         habitId: habit.id,
         name: habit.name,
@@ -143,9 +176,10 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         color: habit.color,
         dailyTarget: habit.dailyTarget,
         unit: habit.unit,
-        isCompleted: !!entry,
+        isCompleted: completed,
         completedAt: entry?.completedAt,
         streak,
+        status,
       };
     });
   },

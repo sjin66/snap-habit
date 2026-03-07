@@ -35,6 +35,8 @@ export interface TodaySnapshot {
   updatedAt: string;
 }
 
+export type HabitDayStatus = 'active' | 'completed' | 'rest';
+
 export interface TodayHabitItem {
   habitId: string;
   name: string;
@@ -45,4 +47,5 @@ export interface TodayHabitItem {
   isCompleted: boolean;
   completedAt?: string;
   streak: number;
+  status: HabitDayStatus;
 }

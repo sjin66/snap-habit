@@ -230,7 +230,7 @@ export function HabitDetailScreen() {
     (e) => e.habitId === habitId && e.date === today,
   );
 
-  // 30-day completion rate
+  // 30-day completion rate (excluding rest days)
   const thirtyDayRate = useMemo(() => {
     const todayStr = formatDate(new Date());
     const thirtyAgo = formatDate(daysAgo(29));
@@ -238,9 +238,23 @@ export function HabitDetailScreen() {
     const effectiveStart = createdDate > thirtyAgo ? createdDate : thirtyAgo;
     if (effectiveStart > todayStr) return { completed: 0, total: 0, percent: 0 };
     const msPerDay = 86400000;
-    const expectedDays = Math.max(1, Math.floor(
+    const totalDays = Math.max(1, Math.floor(
       (new Date(todayStr + 'T00:00:00').getTime() - new Date(effectiveStart + 'T00:00:00').getTime()) / msPerDay
     ) + 1);
+
+    // Count only active days (exclude rest days based on frequency)
+    let activeDays = 0;
+    const freq = habit?.frequency;
+    for (let i = 0; i < totalDays; i++) {
+      const d = new Date(new Date(effectiveStart + 'T00:00:00').getTime() + i * msPerDay);
+      const dow = d.getDay();
+      if (freq && (freq.type === 'weekly' || freq.type === 'custom') && freq.daysOfWeek && freq.daysOfWeek.length > 0) {
+        if (!freq.daysOfWeek.includes(dow)) continue; // rest day
+      }
+      activeDays++;
+    }
+
+    const expectedDays = Math.max(1, activeDays);
     const entries = getEntriesByHabitAndRange(habitId, effectiveStart, todayStr);
     const completedDays = new Set(entries.map((e) => e.date)).size;
     const percent = Math.round((completedDays / expectedDays) * 100);

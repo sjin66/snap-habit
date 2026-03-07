@@ -101,6 +101,8 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
   const isDark = colorScheme === 'dark';
   const primaryColor = isDark ? '#EBEBEB' : '#141414';
   const bgColor = isDark ? '#111111' : '#FFFFFF';
+  const mutedColor = isDark ? '#B4B4B4' : '#8E8E8E';
+  const isRest = item.status === 'rest' && !item.isCompleted;
   const [cardHeight, setCardHeight] = useState(60);
   const btnWidth = Math.round(cardHeight * 0.6);
 
@@ -239,42 +241,71 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
       onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}
       style={{
         transform: [{ scale }],
-        backgroundColor: item.color + (item.isCompleted ? '20' : '15'),
-        borderColor: item.color + '30',
+        backgroundColor: isRest
+          ? (isDark ? '#1A1A1A' : '#F0F0F0')
+          : item.color + (item.isCompleted ? '20' : '15'),
+        borderColor: isRest
+          ? (isDark ? '#2D2D2D' : '#E0E0E0')
+          : item.color + '30',
+        opacity: isRest ? 0.7 : 1,
       }}
     >
       {/* Icon */}
       <View
         className="w-[52px] h-[52px] rounded-[14px] justify-center items-center mr-3.5"
-        style={{ backgroundColor: item.color + (item.isCompleted ? '33' : '15') }}
+        style={{ backgroundColor: isRest
+          ? (isDark ? '#2A2A2A' : '#E0E0E0')
+          : item.color + (item.isCompleted ? '33' : '15') }}
       >
-        <Ionicons name={item.icon as any} size={24} color={item.color} />
+        <Ionicons name={item.icon as any} size={24} color={isRest ? mutedColor : item.color} />
       </View>
 
       {/* Info */}
       <View className="flex-1">
-        <Text
-          className="text-base font-semibold mb-1 text-foreground dark:text-foreground-dark"
-        >
-          {item.name}
-        </Text>
-        <View className="flex-row items-center">
-          <Text className="text-[13px] text-foreground dark:text-foreground-dark">
-            {item.dailyTarget} {item.unit}
+        {isRest ? (
+          <Text
+            className="text-base font-semibold mb-1"
+            style={{ color: mutedColor }}
+          >
+            {item.name}
           </Text>
-          {item.streak > 0 && (
+        ) : (
+          <Text
+            className="text-base font-semibold mb-1 text-foreground dark:text-foreground-dark"
+          >
+            {item.name}
+          </Text>
+        )}
+        <View className="flex-row items-center">
+          {isRest ? (
+            <Text style={{ fontSize: 13, color: mutedColor }}>
+              Rest day
+            </Text>
+          ) : (
             <>
-              <Text className="text-[13px] text-foreground dark:text-foreground-dark"> · </Text>
-              <Ionicons name="flame" size={13} color="#F97316" />
-              <Text className="text-[13px] font-medium text-foreground dark:text-foreground-dark ml-0.5">
-                {item.streak}d
+              <Text className="text-[13px] text-foreground dark:text-foreground-dark">
+                {item.dailyTarget} {item.unit}
               </Text>
+              {item.streak > 0 && (
+                <>
+                  <Text className="text-[13px] text-foreground dark:text-foreground-dark"> · </Text>
+                  <Ionicons name="flame" size={13} color="#F97316" />
+                  <Text className="text-[13px] font-medium text-foreground dark:text-foreground-dark ml-0.5">
+                    {item.streak}d
+                  </Text>
+                </>
+              )}
             </>
           )}
         </View>
       </View>
 
-      {/* Check button */}
+      {/* Check button / Rest indicator */}
+      {isRest ? (
+        <View className="w-[46px] h-[46px] rounded-full justify-center items-center">
+          <Ionicons name="moon-outline" size={20} color={mutedColor} />
+        </View>
+      ) : (
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.7}
@@ -298,6 +329,7 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
           </Svg>
         )}
       </TouchableOpacity>
+      )}
     </Animated.View>
     </TouchableOpacity>
     </ReanimatedSwipeable>
