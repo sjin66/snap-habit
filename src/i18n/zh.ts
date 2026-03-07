@@ -1,0 +1,158 @@
+export default {
+  // ── Common ──
+  done: '完成',
+  cancel: '取消',
+  delete: '删除',
+  edit: '编辑',
+  save: '保存',
+  completed: '已完成',
+
+  // ── TodayScreen ──
+  today: '今天',
+  dayNames: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
+  monthNames: [
+    '一月', '二月', '三月', '四月', '五月', '六月',
+    '七月', '八月', '九月', '十月', '十一月', '十二月',
+  ],
+
+  // ── AddHabitScreen ──
+  addAHabit: '添加习惯',
+  commonHabits: '常见习惯',
+  selectPopularHabit: '选择一个热门习惯开始',
+  customHabit: '自定义习惯',
+  // Preset habit names
+  habitHydration: '喝水',
+  habitReading: '阅读',
+  habitMeditation: '冥想',
+  habitExercise: '运动',
+  habitJournaling: '写日记',
+  habitDeepWork: '深度工作',
+  habitSleepEarly: '早睡',
+  habitNutrition: '健康饮食',
+
+  // ── NewHabitScreen ──
+  newHabit: '新习惯',
+  editHabit: '编辑习惯',
+  createHabit: '创建习惯',
+  saveChanges: '保存更改',
+  basicInfo: '基本信息',
+  name: '名称',
+  namePlaceholder: '例如 晨间瑜伽',
+  notes: '备注',
+  optional: '可选',
+  appearance: '外观',
+  category: '分类',
+  icon: '图标',
+  color: '颜色',
+  goalAndFrequency: '目标与频率',
+  dailyTarget: '每日目标',
+  daily: '每天',
+  weekly: '每周',
+  weekdays: '工作日',
+  weekends: '周末',
+  everyDay: '每天',
+  weekdayLetters: ['一', '二', '三', '四', '五', '六', '日'],
+  reminders: '提醒',
+  noRemindersSet: '未设置提醒',
+  notificationsDisabled: '通知已关闭',
+  enableNotificationsMsg: '请在设置中开启通知以使用提醒功能。',
+
+  // Units
+  unitTimes: '次',
+  unitTimeSingular: '次',
+  unitMin: '分钟',
+  unitHours: '小时',
+  unitHourSingular: '小时',
+  unitPages: '页',
+  unitPageSingular: '页',
+  unitGlasses: '杯',
+  unitGlassSingular: '杯',
+  unitSteps: '步',
+  unitStepSingular: '步',
+  unitKm: '公里',
+  unitMl: '毫升',
+  unitCal: '千卡',
+
+  // ── Categories ──
+  catHealth: '健康',
+  catFitness: '健身',
+  catMindfulness: '正念',
+  catProductivity: '效率',
+  catLearning: '学习',
+  catSocial: '社交',
+  catFinance: '理财',
+  catCreative: '创意',
+  catOther: '其他',
+
+  // Category name mapping (DB name → display)
+  categoryName: {
+    Health: '健康',
+    Fitness: '健身',
+    Mindfulness: '正念',
+    Productivity: '效率',
+    Learning: '学习',
+    Social: '社交',
+    Finance: '理财',
+    Creative: '创意',
+    Other: '其他',
+  } as Record<string, string>,
+
+  // ── HabitDetailScreen ──
+  details: '详情',
+  habitNotFound: '未找到该习惯',
+  currentStreak: '当前连续',
+  totalCompletions: '总完成次数',
+  last30Days: '近 30 天',
+  weekdayHeaders: ['一', '二', '三', '四', '五', '六', '日'],
+  successPercent: '% 完成率',
+
+  // ── HabitCard ──
+  deleteHabit: '删除习惯',
+  deleteHabitConfirm: (name: string) => `确定要删除"${name}"吗？`,
+  restDay: '休息日',
+  streakDaySuffix: '天',
+
+  // ── ProgressCard ──
+  celebrationMessages: [
+    { emoji: '🎉', text: '今天全部完成！' },
+    { emoji: '🔥', text: '完美的一天！' },
+    { emoji: '⭐', text: '状态火热！' },
+    { emoji: '💪', text: '100% 完成！' },
+    { emoji: '🏆', text: '太棒了！' },
+  ],
+  celebrationSubtext: '你已完成今天所有习惯',
+  quotes: [
+    '"一步一个脚印，你正在取得进步。"',
+    '"你养成的每个习惯，都在塑造更好的自己。"',
+    '"小胜利会累积成非凡的成果。"',
+    '"坚持永远胜过完美。"',
+  ],
+
+  // ── StatsScreen ──
+  statistics: '统计',
+  weeklyProgress: '每周进度',
+  completion: '完成率',
+  thisWeek: '% 本周',
+  longestStreak: '最长连续',
+  days: '天',
+  currentPrefix: '当前：',
+  activity: '活动',
+  habitPerformance: '习惯表现',
+  noHabitsYet: '还没有习惯，创建一个来查看统计！',
+  monthAbbr: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+  encourageGreat: '继续保持！你正走在正确的路上。',
+  encourageGood: '进展不错！再加把劲。',
+  encourageStart: '每一天都是积蓄力量的机会。',
+  encourageZero: '从今天开始追踪你的习惯吧！',
+
+  // ── Navigation ──
+  discoverComingSoon: '发现（即将推出）',
+  profileComingSoon: '个人（即将推出）',
+
+  // ── Settings ──
+  settings: '设置',
+  profile: '个人',
+  language: '语言',
+  english: 'English',
+  chinese: '中文',
+} as const;

@@ -21,13 +21,10 @@ import DraggableFlatList, {
 import { ProgressCard } from '../components/ProgressCard';
 import { HabitCard } from '../components/HabitCard';
 import { useHabitStore } from '../stores/habitStore';
+import { useI18n } from '../i18n';
 import type { TodayHabitItem } from '../types/habit';
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+// Day/month names are now provided by i18n
 
 /** Sort order: active → completed → rest */
 const STATUS_ORDER: Record<string, number> = { active: 0, completed: 1, rest: 2 };
@@ -35,18 +32,19 @@ function sortByStatus(a: TodayHabitItem, b: TodayHabitItem): number {
   return (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0);
 }
 
-function formatDate(): { weekday: string; full: string } {
+function formatDate(dayNames: readonly string[], monthNames: readonly string[]): { weekday: string; full: string } {
   const now = new Date();
   return {
-    weekday: DAYS[now.getDay()],
-    full: `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`,
+    weekday: dayNames[now.getDay()],
+    full: `${dayNames[now.getDay()]}, ${monthNames[now.getMonth()]} ${now.getDate()}`,
   };
 }
 
 export function TodayScreen() {
   const { habits, checkIn, uncheckIn, deleteHabit, reorderHabits, getTodayItems } = useHabitStore();
   const navigation = useNavigation<any>();
-  const dateStr = formatDate().full;
+  const { t } = useI18n();
+  const dateStr = formatDate(t.dayNames, t.monthNames).full;
   const colorScheme = useColorScheme();
 
   const [isJiggling, setIsJiggling] = useState(false);
@@ -208,7 +206,7 @@ export function TodayScreen() {
               {dateStr}
             </Text>
             <Text className="text-[32px] font-extrabold text-foreground dark:text-foreground-dark tracking-tight">
-              Today
+              {t.today}
             </Text>
           </View>
           {isJiggling ? (
@@ -234,7 +232,7 @@ export function TodayScreen() {
               className="px-4 h-9 rounded-full bg-primary dark:bg-primary-dark justify-center items-center mt-1"
             >
               <Text className="text-[15px] font-semibold text-background dark:text-background-dark">
-                Done
+                {t.done}
               </Text>
             </TouchableOpacity>
           ) : (

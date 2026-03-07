@@ -20,6 +20,7 @@ import type { FrequencyConfig, HabitCategory } from '@types/habit';
 import { HABIT_CATEGORIES, getCategoryColor } from '../types/habit';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import WheelPicker from '../components/WheelPicker';
+import { useI18n } from '../i18n';
 
 // ─── 可选图标列表 ──────────────────────────────────────
 const ICONS: React.ComponentProps<typeof Ionicons>['name'][] = [
@@ -38,24 +39,13 @@ const HABIT_COLORS = [
 ];
 
 // ─── 单位列表 ──────────────────────────────────────────
-const UNITS = [
-  { key: 'times', label: 'times', singular: 'time' },
-  { key: 'min', label: 'min', singular: 'min' },
-  { key: 'hours', label: 'hours', singular: 'hour' },
-  { key: 'pages', label: 'pages', singular: 'page' },
-  { key: 'glasses', label: 'glasses', singular: 'glass' },
-  { key: 'steps', label: 'steps', singular: 'step' },
-  { key: 'km', label: 'km', singular: 'km' },
-  { key: 'ml', label: 'ml', singular: 'ml' },
-  { key: 'cal', label: 'cal', singular: 'cal' },
-];
+const UNIT_KEYS = ['times', 'min', 'hours', 'pages', 'glasses', 'steps', 'km', 'ml', 'cal'];
 
 // ─── 时间选择数据 ──────────────────────────────────────
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
 
 // ─── 星期几常量 ─────────────────────────────────────────
-const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const WEEKDAY_VALUES = [1, 2, 3, 4, 5, 6, 7];
 
 type NewHabitRouteParams = {
@@ -76,6 +66,19 @@ export function NewHabitScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { addHabit, updateHabit, habits } = useHabitStore();
+  const { t } = useI18n();
+
+  const unitLabels: Record<string, { label: string; singular: string }> = {
+    times: { label: t.unitTimes, singular: t.unitTimeSingular },
+    min: { label: t.unitMin, singular: t.unitMin },
+    hours: { label: t.unitHours, singular: t.unitHourSingular },
+    pages: { label: t.unitPages, singular: t.unitPageSingular },
+    glasses: { label: t.unitGlasses, singular: t.unitGlassSingular },
+    steps: { label: t.unitSteps, singular: t.unitStepSingular },
+    km: { label: t.unitKm, singular: t.unitKm },
+    ml: { label: t.unitMl, singular: t.unitMl },
+    cal: { label: t.unitCal, singular: t.unitCal },
+  };
 
   const preset = route.params ?? {};
   const isEditing = !!preset.editHabitId;
@@ -134,7 +137,7 @@ export function NewHabitScreen() {
     }
 
     const UNIT_ITEM_WIDTH = 60 + 8; // ~px-3.5 (avg ~60) + gap-2 (8)
-    const unitIndex = UNITS.findIndex((u) => u.key === unit);
+    const unitIndex = UNIT_KEYS.indexOf(unit);
     if (unitIndex > 0) {
       setTimeout(() => {
         const offset = Math.max(0, unitIndex * UNIT_ITEM_WIDTH - (unitScrollWidth.current - UNIT_ITEM_WIDTH) / 2);
@@ -153,8 +156,8 @@ export function NewHabitScreen() {
     const granted = await requestPermissions();
     if (!granted) {
       Alert.alert(
-        'Notifications Disabled',
-        'Please enable notifications in Settings to use reminders.',
+        t.notificationsDisabled,
+        t.enableNotificationsMsg,
       );
       return;
     }
@@ -259,11 +262,11 @@ export function NewHabitScreen() {
           <Ionicons name="close" size={24} color={isDark ? '#FAFAFA' : '#0A0A0A'} />
         </TouchableOpacity>
         <Text className="text-lg font-semibold text-foreground dark:text-foreground-dark">
-          {isEditing ? 'Edit Habit' : 'New Habit'}
+          {isEditing ? t.editHabit : t.newHabit}
         </Text>
         <TouchableOpacity onPress={handleCreate} hitSlop={12}>
           <Text className="text-base font-semibold text-accent dark:text-accent-dark">
-            Done
+            {t.done}
           </Text>
         </TouchableOpacity>
       </View>
@@ -275,25 +278,25 @@ export function NewHabitScreen() {
       >
         {/* ── BASIC INFO ─────────────────────────────── */}
         <Text className="text-xs font-semibold tracking-wider px-5 pt-5 pb-2 text-muted-foreground dark:text-muted-foreground-dark">
-          BASIC INFO
+          {t.basicInfo}
         </Text>
         <View className="mx-5 rounded-2xl overflow-hidden bg-card dark:bg-card-dark border border-border dark:border-border-dark">
           <View className="flex-row items-center px-4 py-3.5 border-b border-border dark:border-border-dark">
-            <Text className="text-base font-medium w-16 text-foreground dark:text-foreground-dark">Name</Text>
+            <Text className="text-base font-medium w-16 text-foreground dark:text-foreground-dark">{t.name}</Text>
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="e.g. Morning Yoga"
+              placeholder={t.namePlaceholder}
               placeholderTextColor={isDark ? '#A3A3A3' : '#737373'}
               className="flex-1 text-base text-foreground dark:text-foreground-dark"
             />
           </View>
           <View className="flex-row items-center px-4 py-3.5">
-            <Text className="text-base font-medium w-16 text-foreground dark:text-foreground-dark">Notes</Text>
+            <Text className="text-base font-medium w-16 text-foreground dark:text-foreground-dark">{t.notes}</Text>
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder="Optional"
+              placeholder={t.optional}
               placeholderTextColor={isDark ? '#A3A3A3' : '#737373'}
               className="flex-1 text-base text-foreground dark:text-foreground-dark"
             />
@@ -302,11 +305,11 @@ export function NewHabitScreen() {
 
         {/* ── APPEARANCE ─────────────────────────────── */}
         <Text className="text-xs font-semibold tracking-wider px-5 pt-6 pb-2 text-muted-foreground dark:text-muted-foreground-dark">
-          APPEARANCE
+          {t.appearance}
         </Text>
         <View className="mx-5 rounded-2xl px-4 py-4 bg-card dark:bg-card-dark border border-border dark:border-border-dark">
           {/* Category */}
-          <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">Category</Text>
+          <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">{t.category}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
             <View className="flex-row gap-2">
               {HABIT_CATEGORIES.map((cat) => {
@@ -331,7 +334,7 @@ export function NewHabitScreen() {
                       }`}
                       style={isSelected ? { color: chipColor } : undefined}
                     >
-                      {cat.name}
+                      {t.categoryName[cat.name] || cat.name}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -340,7 +343,7 @@ export function NewHabitScreen() {
           </ScrollView>
 
           {/* Icon */}
-          <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">Icon</Text>
+          <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">{t.icon}</Text>
           <ScrollView
             ref={iconScrollRef}
             horizontal
@@ -376,7 +379,7 @@ export function NewHabitScreen() {
           </ScrollView>
 
           {/* Color */}
-          <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">Color</Text>
+          <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">{t.color}</Text>
           <ScrollView
             ref={colorScrollRef}
             horizontal
@@ -408,12 +411,12 @@ export function NewHabitScreen() {
 
         {/* ── GOAL & FREQUENCY ───────────────────────── */}
         <Text className="text-xs font-semibold tracking-wider px-5 pt-6 pb-2 text-muted-foreground dark:text-muted-foreground-dark">
-          GOAL & FREQUENCY
+          {t.goalAndFrequency}
         </Text>
         <View className="mx-5 rounded-2xl px-4 py-5 bg-card dark:bg-card-dark border border-border dark:border-border-dark">
           {/* Daily Target */}
           <Text className="text-base font-semibold text-center mb-3 text-foreground dark:text-foreground-dark">
-            Daily Target
+            {t.dailyTarget}
           </Text>
           <View className="flex-row items-center justify-center mb-5">
             <TouchableOpacity
@@ -448,7 +451,7 @@ export function NewHabitScreen() {
               />
               <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
                 {(() => {
-                  const u = UNITS.find((u) => u.key === unit)!;
+                  const u = unitLabels[unit] || { label: unit, singular: unit };
                   return dailyTarget === 1 ? u.singular : u.label;
                 })()}
               </Text>
@@ -474,12 +477,12 @@ export function NewHabitScreen() {
             onLayout={(e) => { unitScrollWidth.current = e.nativeEvent.layout.width; }}
           >
             <View className="flex-row gap-2">
-              {UNITS.map((u) => {
-                const isSelected = u.key === unit;
+              {UNIT_KEYS.map((key) => {
+                const isSelected = key === unit;
                 return (
                   <TouchableOpacity
-                    key={u.key}
-                    onPress={() => setUnit(u.key)}
+                    key={key}
+                    onPress={() => setUnit(key)}
                     className={`px-3.5 py-1.5 rounded-full ${
                       isSelected
                         ? 'bg-primary dark:bg-primary-dark'
@@ -491,7 +494,7 @@ export function NewHabitScreen() {
                         ? 'text-primary-foreground dark:text-primary-foreground-dark'
                         : 'text-foreground dark:text-foreground-dark'
                     }`}>
-                      {u.label}
+                      {(unitLabels[key] || { label: key }).label}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -517,7 +520,7 @@ export function NewHabitScreen() {
                   ? 'text-primary-foreground dark:text-primary-foreground-dark'
                   : 'text-foreground dark:text-foreground-dark'
               }`}>
-                Daily
+                {t.daily}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -533,7 +536,7 @@ export function NewHabitScreen() {
                   ? 'text-primary-foreground dark:text-primary-foreground-dark'
                   : 'text-foreground dark:text-foreground-dark'
               }`}>
-                Weekly
+                {t.weekly}
               </Text>
             </TouchableOpacity>
           </View>
@@ -544,9 +547,9 @@ export function NewHabitScreen() {
               {/* Quick presets */}
               <View className="flex-row mb-3" style={{ gap: 8 }}>
                 {([
-                  { label: 'Weekdays', days: [1, 2, 3, 4, 5] },
-                  { label: 'Weekends', days: [6, 7] },
-                  { label: 'Every Day', days: [1, 2, 3, 4, 5, 6, 7] },
+                  { label: t.weekdays, days: [1, 2, 3, 4, 5] },
+                  { label: t.weekends, days: [6, 7] },
+                  { label: t.everyDay, days: [1, 2, 3, 4, 5, 6, 7] },
                 ] as const).map((preset) => {
                   const isActive = preset.days.length === selectedDays.length &&
                     preset.days.every((d) => selectedDays.includes(d));
@@ -570,7 +573,7 @@ export function NewHabitScreen() {
 
               {/* Day circles */}
               <View className="flex-row justify-between">
-              {WEEKDAYS.map((label, idx) => {
+              {t.weekdayLetters.map((label, idx) => {
                 const dayVal = WEEKDAY_VALUES[idx];
                 const isActive = selectedDays.includes(dayVal);
                 return (
@@ -600,7 +603,7 @@ export function NewHabitScreen() {
             <View className="flex-row items-center">
               <Ionicons name="notifications" size={22} color={isDark ? '#B4B4B4' : '#8E8E8E'} />
               <Text className="text-base font-medium ml-2 text-foreground dark:text-foreground-dark">
-                Reminders
+                {t.reminders}
               </Text>
             </View>
             <TouchableOpacity onPress={handleAddReminder} hitSlop={12}>
@@ -663,7 +666,7 @@ export function NewHabitScreen() {
 
           {reminders.length === 0 && (
             <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-2">
-              No reminders set
+              {t.noRemindersSet}
             </Text>
           )}
         </View>
@@ -681,7 +684,7 @@ export function NewHabitScreen() {
           <Text className={`text-base font-semibold ${
             name.trim() ? 'text-primary-foreground dark:text-primary-foreground-dark' : 'text-muted-foreground dark:text-muted-foreground-dark'
           }`}>
-            {isEditing ? 'Save Changes' : 'Create Habit'}
+            {isEditing ? t.saveChanges : t.createHabit}
           </Text>
         </TouchableOpacity>
       </View>

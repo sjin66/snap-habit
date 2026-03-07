@@ -11,10 +11,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { useHabitStore } from '../stores/habitStore';
+import { useI18n } from '../i18n';
 
 interface CommonHabit {
-  name: string;
-  category: string;
+  nameKey: string;
+  categoryKey: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
   goal: number;
@@ -22,14 +23,14 @@ interface CommonHabit {
 }
 
 const COMMON_HABITS: CommonHabit[] = [
-  { name: 'Hydration',   category: 'Health',        icon: 'water',           color: '#3B82F6', goal: 2000, unit: 'ml' },
-  { name: 'Reading',     category: 'Learning',      icon: 'book',            color: '#8B5CF6', goal: 30, unit: 'min' },
-  { name: 'Meditation',  category: 'Mindfulness',   icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
-  { name: 'Exercise',    category: 'Fitness',       icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },
-  { name: 'Journaling',  category: 'Mindfulness',   icon: 'pencil',          color: '#F59E0B', goal: 1,  unit: 'times' },
-  { name: 'Deep Work',   category: 'Productivity',  icon: 'flash',           color: '#F97316', goal: 2,  unit: 'hours' },
-  { name: 'Sleep Early', category: 'Health',        icon: 'moon',            color: '#6366F1', goal: 1,  unit: 'times' },
-  { name: 'Nutrition',   category: 'Health',        icon: 'nutrition',       color: '#14B8A6', goal: 3,  unit: 'times' },
+  { nameKey: 'habitHydration',   categoryKey: 'catHealth',        icon: 'water',           color: '#3B82F6', goal: 2000, unit: 'ml' },
+  { nameKey: 'habitReading',     categoryKey: 'catLearning',      icon: 'book',            color: '#8B5CF6', goal: 30, unit: 'min' },
+  { nameKey: 'habitMeditation',  categoryKey: 'catMindfulness',   icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
+  { nameKey: 'habitExercise',    categoryKey: 'catFitness',       icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },
+  { nameKey: 'habitJournaling',  categoryKey: 'catMindfulness',   icon: 'pencil',          color: '#F59E0B', goal: 1,  unit: 'times' },
+  { nameKey: 'habitDeepWork',    categoryKey: 'catProductivity',  icon: 'flash',           color: '#F97316', goal: 2,  unit: 'hours' },
+  { nameKey: 'habitSleepEarly',  categoryKey: 'catHealth',        icon: 'moon',            color: '#6366F1', goal: 1,  unit: 'times' },
+  { nameKey: 'habitNutrition',   categoryKey: 'catHealth',        icon: 'nutrition',       color: '#14B8A6', goal: 3,  unit: 'times' },
 ];
 
 export function AddHabitScreen() {
@@ -37,15 +38,16 @@ export function AddHabitScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { addHabit } = useHabitStore();
+  const { t } = useI18n();
 
   const handleSelectHabit = (habit: CommonHabit) => {
     (navigation as any).navigate('NewHabit', {
-      presetName: habit.name,
+      presetName: (t as any)[habit.nameKey],
       presetIcon: habit.icon,
       presetColor: habit.color,
       presetGoal: habit.goal,
       presetUnit: habit.unit,
-      presetCategory: habit.category,
+      presetCategory: (t as any)[habit.categoryKey],
     });
   };
 
@@ -57,7 +59,7 @@ export function AddHabitScreen() {
           <Ionicons name="close" size={24} color={isDark ? '#FAFAFA' : '#0A0A0A'} />
         </TouchableOpacity>
         <Text className="text-lg font-semibold text-foreground dark:text-foreground-dark">
-          Add a Habit
+          {t.addAHabit}
         </Text>
         <View className="w-6" />
       </View>
@@ -70,17 +72,17 @@ export function AddHabitScreen() {
         {/* Section title */}
         <View className="px-5 pt-3 pb-3">
           <Text className="text-2xl font-bold text-foreground dark:text-foreground-dark mb-0.5">
-            Common Habits
+            {t.commonHabits}
           </Text>
           <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
-            Select a popular habit to get started
+            {t.selectPopularHabit}
           </Text>
         </View>
 
         {/* Grid */}
         <View className="flex-row flex-wrap px-4">
           {COMMON_HABITS.map((habit, index) => (
-            <Animated.View key={habit.name} entering={FadeInDown.delay(index * 80).duration(400)} className="w-1/2 p-1.5">
+            <Animated.View key={habit.nameKey} entering={FadeInDown.delay(index * 80).duration(400)} className="w-1/2 p-1.5">
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => handleSelectHabit(habit)}
@@ -94,10 +96,10 @@ export function AddHabitScreen() {
                   <Ionicons name={habit.icon} size={28} color={habit.color} />
                 </View>
                 <Text className="text-base font-semibold text-foreground dark:text-foreground-dark mb-0.5">
-                  {habit.name}
+                  {(t as any)[habit.nameKey]}
                 </Text>
                 <Text className="text-xs font-medium tracking-wider text-muted-foreground dark:text-muted-foreground-dark">
-                  {habit.category}
+                  {(t as any)[habit.categoryKey]}
                 </Text>
               </TouchableOpacity>
             </Animated.View>
@@ -119,7 +121,7 @@ export function AddHabitScreen() {
             style={{ marginRight: 8 }}
           />
           <Text className="text-base font-semibold text-primary-foreground dark:text-primary-foreground-dark">
-            Custom Habit
+            {t.customHabit}
           </Text>
         </TouchableOpacity>
       </View>

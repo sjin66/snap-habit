@@ -11,21 +11,9 @@ import Animated, {
   Easing,
   interpolateColor,
 } from 'react-native-reanimated';
+import { useI18n } from '../i18n';
 
-const QUOTES = [
-  '"One step at a time, you\'re making great progress."',
-  '"Every habit you build shapes the person you become."',
-  '"Small wins compound into extraordinary results."',
-  '"Consistency beats perfection every time."',
-];
-
-const CELEBRATION_MESSAGES = [
-  { emoji: '🎉', text: 'All done for today!' },
-  { emoji: '🔥', text: 'Perfect day!' },
-  { emoji: '⭐', text: 'You\'re on fire!' },
-  { emoji: '💪', text: '100% complete!' },
-  { emoji: '🏆', text: 'Crushed it!' },
-];
+// Quotes and celebration messages are now provided by i18n
 
 interface Props {
   completed: number;
@@ -35,11 +23,12 @@ interface Props {
 export function ProgressCard({ completed, total }: Props) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useI18n();
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
   const isAllDone = total > 0 && completed === total;
 
   const prevCompletedRef = useRef(completed);
-  const celebrationMsgRef = useRef(CELEBRATION_MESSAGES[0]);
+  const celebrationMsgRef = useRef<{ emoji: string; text: string }>(t.celebrationMessages[0]);
 
   const widthProgress = useSharedValue(percent);
   // Celebration slide: 0 = hidden, 1 = visible
@@ -55,7 +44,7 @@ export function ProgressCard({ completed, total }: Props) {
   useEffect(() => {
     if (justCompleted) {
       // Pick a random celebration message
-      celebrationMsgRef.current = CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)];
+      celebrationMsgRef.current = t.celebrationMessages[Math.floor(Math.random() * t.celebrationMessages.length)];
 
       // Haptic success feedback
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -140,7 +129,7 @@ export function ProgressCard({ completed, total }: Props) {
                 {completed} / {total}
               </Text>
               <Text className="text-muted-foreground dark:text-muted-foreground-dark font-normal">
-                {' '}completed
+                {' '}{t.completed}
               </Text>
             </Text>
             <Text className="text-base font-bold text-primary dark:text-primary-dark">{percent}%</Text>
@@ -202,7 +191,7 @@ export function ProgressCard({ completed, total }: Props) {
               fontSize: 13,
               color: isDark ? '#A1A1A6' : '#8E8E93',
             }}>
-              You've completed all habits today
+              {t.celebrationSubtext}
             </Text>
           </View>
         </Animated.View>

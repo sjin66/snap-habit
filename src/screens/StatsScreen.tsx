@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useHabitStore, isRestDay } from '../stores/habitStore';
 import { getEntriesInRange, getEntriesByHabitAndRange } from '../services/database';
+import { useI18n } from '../i18n';
 
 // ─── Helpers ───────────────────────────────────────────
 
@@ -61,8 +62,6 @@ function AnimatedBar({ percent, delay = 0 }: { percent: number; delay?: number }
 // ─── Constants ─────────────────────────────────────────
 
 const NUM_WEEKS = 12;
-const WEEKDAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const LABEL_W = 22;
 const CELL_GAP = 3;
 
 // ─── Screen ────────────────────────────────────────────
@@ -71,10 +70,11 @@ export function StatsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { habits, todayEntries } = useHabitStore();
+  const { t } = useI18n();
   const { width: screenWidth } = useWindowDimensions();
 
   // Cell size for GitHub-style grid
-  const gridInnerWidth = screenWidth - 40 - 32 - LABEL_W - CELL_GAP;
+  const gridInnerWidth = screenWidth - 40 - 32 - 22 - CELL_GAP;
   const cellSize = Math.floor(
     (gridInnerWidth - CELL_GAP * (NUM_WEEKS - 1)) / NUM_WEEKS
   );
@@ -248,13 +248,12 @@ export function StatsScreen() {
 
     // Month labels for the grid
     const monthLabels: { label: string; colIndex: number }[] = [];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     let lastMonth = -1;
     for (let w = 0; w < NUM_WEEKS; w++) {
       const firstDateInWeek = activityColumns[w][0].date;
       const m = new Date(firstDateInWeek + 'T00:00:00').getMonth();
       if (m !== lastMonth) {
-        monthLabels.push({ label: months[m], colIndex: w });
+        monthLabels.push({ label: t.monthAbbr[m], colIndex: w });
         lastMonth = m;
       }
     }
@@ -292,16 +291,16 @@ export function StatsScreen() {
       monthLabels,
       habitPerformance,
     };
-  }, [habits, todayEntries]);
+  }, [habits, todayEntries, t]);
 
   const encouragement =
     stats.weekPercent >= 80
-      ? "Keep up the good work! You're on track."
+      ? t.encourageGreat
       : stats.weekPercent >= 50
-      ? "Good progress! Push a little harder."
+      ? t.encourageGood
       : stats.weekPercent > 0
-      ? "Every day is a chance to build momentum."
-      : "Start tracking your habits today!";
+      ? t.encourageStart
+      : t.encourageZero;
 
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark" edges={['top']}>
@@ -314,7 +313,7 @@ export function StatsScreen() {
         {/* Header */}
         <Animated.View entering={FadeInDown.duration(400)} className="px-5 pt-4 pb-2">
           <Text className="text-3xl font-bold text-foreground dark:text-foreground-dark">
-            Statistics
+            {t.statistics}
           </Text>
         </Animated.View>
 
@@ -325,7 +324,7 @@ export function StatsScreen() {
         >
           <View className="flex-row justify-between items-center mb-1">
             <Text className="text-base font-semibold text-foreground dark:text-foreground-dark">
-              Weekly Progress
+              {t.weeklyProgress}
             </Text>
             <Text className="text-3xl font-bold text-primary dark:text-primary-dark">
               {stats.weekPercent}%
@@ -346,7 +345,7 @@ export function StatsScreen() {
             <View className="flex-row items-center mb-2">
               <Ionicons name="checkmark-done" size={18} color={isDark ? '#EBEBEB' : '#141414'} />
               <Text className="text-sm font-medium text-muted-foreground dark:text-muted-foreground-dark ml-1.5">
-                Completion
+                {t.completion}
               </Text>
             </View>
             <Text className="text-3xl font-bold text-foreground dark:text-foreground-dark">
@@ -362,7 +361,7 @@ export function StatsScreen() {
                 className="text-xs font-medium ml-1"
                 style={{ color: stats.weekChange >= 0 ? '#22C55E' : '#EF4444' }}
               >
-                {stats.weekChange >= 0 ? '+' : ''}{stats.weekChange}% this week
+                {stats.weekChange >= 0 ? '+' : ''}{stats.weekChange}{t.thisWeek}
               </Text>
             </View>
           </View>
@@ -372,7 +371,7 @@ export function StatsScreen() {
             <View className="flex-row items-center mb-2">
               <Ionicons name="flame" size={18} color="#F97316" />
               <Text className="text-sm font-medium text-muted-foreground dark:text-muted-foreground-dark ml-1.5">
-                Longest Streak
+                {t.longestStreak}
               </Text>
             </View>
             <View className="flex-row items-baseline">
@@ -380,11 +379,11 @@ export function StatsScreen() {
                 {stats.longestStreak}
               </Text>
               <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark ml-1">
-                days
+                {t.days}
               </Text>
             </View>
             <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark mt-1">
-              Current: {stats.currentStreak} days
+              {t.currentPrefix}{stats.currentStreak} {t.days}
             </Text>
           </View>
         </Animated.View>
@@ -393,12 +392,12 @@ export function StatsScreen() {
         <Animated.View entering={FadeInDown.delay(180).duration(400)} className="mx-5 mt-4">
           <View className="p-4 rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark">
             <Text className="text-sm font-medium text-muted-foreground dark:text-muted-foreground-dark mb-3">
-              Activity
+              {t.activity}
             </Text>
             <View className="flex-row">
               {/* Weekday labels */}
-              <View style={{ width: LABEL_W, marginRight: CELL_GAP }}>
-                {WEEKDAY_LABELS.map((d, i) => (
+              <View style={{ width: 22, marginRight: CELL_GAP }}>
+                {t.weekdayHeaders.map((d, i) => (
                   <View
                     key={d}
                     style={{
@@ -459,7 +458,7 @@ export function StatsScreen() {
                   style={{
                     fontSize: 10,
                     position: 'absolute',
-                    left: LABEL_W + CELL_GAP + ml.colIndex * (cellSize + CELL_GAP),
+                    left: 22 + CELL_GAP + ml.colIndex * (cellSize + CELL_GAP),
                   }}
                 >
                   {ml.label}
@@ -473,7 +472,7 @@ export function StatsScreen() {
         <Animated.View entering={FadeInDown.delay(240).duration(400)} className="mx-5 mt-4">
           <View className="rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark overflow-hidden">
             <Text className="text-sm font-medium text-muted-foreground dark:text-muted-foreground-dark px-4 pt-4 pb-2">
-              Habit Performance
+              {t.habitPerformance}
             </Text>
             {stats.habitPerformance.map((hp, i) => (
               <View
@@ -507,7 +506,7 @@ export function StatsScreen() {
                     />
                   </View>
                   <Text className="text-xs text-muted-foreground dark:text-muted-foreground-dark mt-1">
-                    {hp.completedDays}/{hp.expectedDays} days
+                    {hp.completedDays}/{hp.expectedDays} {t.days}
                   </Text>
                 </View>
               </View>
@@ -516,7 +515,7 @@ export function StatsScreen() {
             {stats.habitPerformance.length === 0 && (
               <View className="p-8 items-center">
                 <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
-                  No habits yet. Create one to see stats!
+                  {t.noHabitsYet}
                 </Text>
               </View>
             )}

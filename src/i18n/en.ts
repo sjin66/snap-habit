@@ -1,0 +1,158 @@
+export default {
+  // ── Common ──
+  done: 'Done',
+  cancel: 'Cancel',
+  delete: 'Delete',
+  edit: 'Edit',
+  save: 'Save',
+  completed: 'completed',
+
+  // ── TodayScreen ──
+  today: 'Today',
+  dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  monthNames: [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ],
+
+  // ── AddHabitScreen ──
+  addAHabit: 'Add a Habit',
+  commonHabits: 'Common Habits',
+  selectPopularHabit: 'Select a popular habit to get started',
+  customHabit: 'Custom Habit',
+  // Preset habit names
+  habitHydration: 'Hydration',
+  habitReading: 'Reading',
+  habitMeditation: 'Meditation',
+  habitExercise: 'Exercise',
+  habitJournaling: 'Journaling',
+  habitDeepWork: 'Deep Work',
+  habitSleepEarly: 'Sleep Early',
+  habitNutrition: 'Nutrition',
+
+  // ── NewHabitScreen ──
+  newHabit: 'New Habit',
+  editHabit: 'Edit Habit',
+  createHabit: 'Create Habit',
+  saveChanges: 'Save Changes',
+  basicInfo: 'BASIC INFO',
+  name: 'Name',
+  namePlaceholder: 'e.g. Morning Yoga',
+  notes: 'Notes',
+  optional: 'Optional',
+  appearance: 'APPEARANCE',
+  category: 'Category',
+  icon: 'Icon',
+  color: 'Color',
+  goalAndFrequency: 'GOAL & FREQUENCY',
+  dailyTarget: 'Daily Target',
+  daily: 'Daily',
+  weekly: 'Weekly',
+  weekdays: 'Weekdays',
+  weekends: 'Weekends',
+  everyDay: 'Every Day',
+  weekdayLetters: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+  reminders: 'Reminders',
+  noRemindersSet: 'No reminders set',
+  notificationsDisabled: 'Notifications Disabled',
+  enableNotificationsMsg: 'Please enable notifications in Settings to use reminders.',
+
+  // Units
+  unitTimes: 'times',
+  unitTimeSingular: 'time',
+  unitMin: 'min',
+  unitHours: 'hours',
+  unitHourSingular: 'hour',
+  unitPages: 'pages',
+  unitPageSingular: 'page',
+  unitGlasses: 'glasses',
+  unitGlassSingular: 'glass',
+  unitSteps: 'steps',
+  unitStepSingular: 'step',
+  unitKm: 'km',
+  unitMl: 'ml',
+  unitCal: 'cal',
+
+  // ── Categories ──
+  catHealth: 'Health',
+  catFitness: 'Fitness',
+  catMindfulness: 'Mindfulness',
+  catProductivity: 'Productivity',
+  catLearning: 'Learning',
+  catSocial: 'Social',
+  catFinance: 'Finance',
+  catCreative: 'Creative',
+  catOther: 'Other',
+
+  // Category name mapping (DB name → display)
+  categoryName: {
+    Health: 'Health',
+    Fitness: 'Fitness',
+    Mindfulness: 'Mindfulness',
+    Productivity: 'Productivity',
+    Learning: 'Learning',
+    Social: 'Social',
+    Finance: 'Finance',
+    Creative: 'Creative',
+    Other: 'Other',
+  } as Record<string, string>,
+
+  // ── HabitDetailScreen ──
+  details: 'Details',
+  habitNotFound: 'Habit not found',
+  currentStreak: 'CURRENT STREAK',
+  totalCompletions: 'TOTAL COMPLETIONS',
+  last30Days: 'LAST 30 DAYS',
+  weekdayHeaders: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+  successPercent: '% Success',
+
+  // ── HabitCard ──
+  deleteHabit: 'Delete Habit',
+  deleteHabitConfirm: (name: string) => `Are you sure you want to delete "${name}"?`,
+  restDay: 'Rest day',
+  streakDaySuffix: 'd',
+
+  // ── ProgressCard ──
+  celebrationMessages: [
+    { emoji: '🎉', text: 'All done for today!' },
+    { emoji: '🔥', text: 'Perfect day!' },
+    { emoji: '⭐', text: "You're on fire!" },
+    { emoji: '💪', text: '100% complete!' },
+    { emoji: '🏆', text: 'Crushed it!' },
+  ],
+  celebrationSubtext: "You've completed all habits today",
+  quotes: [
+    '"One step at a time, you\'re making great progress."',
+    '"Every habit you build shapes the person you become."',
+    '"Small wins compound into extraordinary results."',
+    '"Consistency beats perfection every time."',
+  ],
+
+  // ── StatsScreen ──
+  statistics: 'Statistics',
+  weeklyProgress: 'Weekly Progress',
+  completion: 'Completion',
+  thisWeek: '% this week',
+  longestStreak: 'Longest Streak',
+  days: 'days',
+  currentPrefix: 'Current: ',
+  activity: 'Activity',
+  habitPerformance: 'Habit Performance',
+  noHabitsYet: 'No habits yet. Create one to see stats!',
+  monthAbbr: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  encourageGreat: "Keep up the good work! You're on track.",
+  encourageGood: 'Good progress! Push a little harder.',
+  encourageStart: 'Every day is a chance to build momentum.',
+  encourageZero: 'Start tracking your habits today!',
+
+  // ── Navigation ──
+  discoverComingSoon: 'Discover (coming soon)',
+  profileComingSoon: 'Profile (coming soon)',
+
+  // ── Settings ──
+  settings: 'Settings',
+  profile: 'Profile',
+  language: 'Language',
+  english: 'English',
+  chinese: '中文',
+} as const;

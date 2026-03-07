@@ -22,6 +22,7 @@ import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import type { TodayHabitItem } from '../types/habit';
 import { getCategoryColor } from '../types/habit';
+import { useI18n } from '../i18n';
 
 /** Separate component so useAnimatedStyle hooks run on the UI thread */
 function RightActions({
@@ -101,6 +102,20 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
   const navigation = useNavigation<any>();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { t } = useI18n();
+
+  const unitLabels: Record<string, { label: string; singular: string }> = {
+    times: { label: t.unitTimes, singular: t.unitTimeSingular },
+    min: { label: t.unitMin, singular: t.unitMin },
+    hours: { label: t.unitHours, singular: t.unitHourSingular },
+    pages: { label: t.unitPages, singular: t.unitPageSingular },
+    glasses: { label: t.unitGlasses, singular: t.unitGlassSingular },
+    steps: { label: t.unitSteps, singular: t.unitStepSingular },
+    km: { label: t.unitKm, singular: t.unitKm },
+    ml: { label: t.unitMl, singular: t.unitMl },
+    cal: { label: t.unitCal, singular: t.unitCal },
+  };
+
   const primaryColor = isDark ? '#EBEBEB' : '#141414';
   const bgColor = isDark ? '#111111' : '#FFFFFF';
   const mutedColor = isDark ? '#B4B4B4' : '#8E8E8E';
@@ -126,14 +141,14 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
 
   const triggerDelete = useCallback(() => {
     Alert.alert(
-      'Delete Habit',
-      `Are you sure you want to delete "${item.name}"?`,
+      t.deleteHabit,
+      t.deleteHabitConfirm(item.name),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: performDelete },
+        { text: t.cancel, style: 'cancel' },
+        { text: t.delete, style: 'destructive', onPress: performDelete },
       ],
     );
-  }, [item.name, performDelete]);
+  }, [item.name, performDelete, t]);
 
   // Jiggle animation — randomize per card for a natural iOS feel
   const jiggleRotation = useSharedValue(0);
@@ -292,7 +307,7 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
                 }}
               >
                 <Text style={{ fontSize: 11, fontWeight: '700', color: getCategoryColor(item.category, isDark) }}>
-                  {item.category}
+                  {t.categoryName[item.category] || item.category}
                 </Text>
               </View>
             )}
@@ -301,19 +316,22 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
         <View className="flex-row items-center">
           {isRest ? (
             <Text style={{ fontSize: 13, color: mutedColor }}>
-              Rest day
+              {t.restDay}
             </Text>
           ) : (
             <>
               <Text className="text-[13px] text-foreground dark:text-foreground-dark">
-                {item.dailyTarget} {item.unit}
+                {item.dailyTarget} {(() => {
+                  const u = unitLabels[item.unit] || { label: item.unit, singular: item.unit };
+                  return item.dailyTarget === 1 ? u.singular : u.label;
+                })()}
               </Text>
               {item.streak > 0 && (
                 <>
                   <Text className="text-[13px] text-foreground dark:text-foreground-dark"> · </Text>
                   <Ionicons name="flame" size={13} color="#F97316" />
                   <Text className="text-[13px] font-medium text-foreground dark:text-foreground-dark ml-0.5">
-                    {item.streak}d
+                    {item.streak}{t.streakDaySuffix}
                   </Text>
                 </>
               )}

@@ -9,18 +9,18 @@ import { AddHabitScreen } from '../screens/AddHabitScreen';
 import { HabitDetailScreen } from '../screens/HabitDetailScreen';
 import { NewHabitScreen } from '../screens/NewHabitScreen';
 import { StatsScreen } from '../screens/StatsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
+import { useI18n } from '../i18n';
 
 // Placeholder screens
-const DiscoverScreen = () => (
-  <View className="flex-1 justify-center items-center bg-background dark:bg-background-dark">
-    <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">Discover (coming soon)</Text>
-  </View>
-);
-const ProfileScreen = () => (
-  <View className="flex-1 justify-center items-center bg-background dark:bg-background-dark">
-    <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">Profile (coming soon)</Text>
-  </View>
-);
+const DiscoverScreen = () => {
+  const { t } = useI18n();
+  return (
+    <View className="flex-1 justify-center items-center bg-background dark:bg-background-dark">
+      <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">{t.discoverComingSoon}</Text>
+    </View>
+  );
+};
 
 export type RootTabParamList = {
   Today: undefined;

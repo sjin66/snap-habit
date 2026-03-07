@@ -5,13 +5,16 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from '@navigation/RootNavigator';
 import { useHabitStore } from '@stores/habitStore';
+import { useI18n } from './src/i18n';
 
 export default function App() {
   const colorScheme = useColorScheme();
   const initialize = useHabitStore((s) => s.initialize);
+  const loadLanguage = useI18n((s) => s.loadLanguage);
 
   useEffect(() => {
     initialize();
+    loadLanguage();
   }, []);
 
   return (

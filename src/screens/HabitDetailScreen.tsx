@@ -21,6 +21,7 @@ import Animated, {
 import { useHabitStore, isRestDay } from '../stores/habitStore';
 import { getEntriesByHabitAndRange } from '../services/database';
 import type { RootStackParamList } from '../navigation/RootNavigator';
+import { useI18n } from '../i18n';
 
 type DetailRoute = RouteProp<RootStackParamList, 'HabitDetail'>;
 
@@ -45,9 +46,9 @@ type CalendarDay = {
   isToday: boolean;
 };
 
-const WEEKDAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+const WEEKDAY_LABELS_FALLBACK = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
-const MONTH_NAMES = [
+const MONTH_NAMES_FALLBACK = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
@@ -57,6 +58,7 @@ function buildMonthCalendar(
   habitId: string,
   createdAt: string,
   frequency?: { type: string; daysOfWeek?: number[] },
+  monthNames: readonly string[] = MONTH_NAMES_FALLBACK,
 ): { days: (CalendarDay | null)[]; monthLabel: string; successRate: number } {
   const now = new Date();
   const year = now.getFullYear();
@@ -115,7 +117,7 @@ function buildMonthCalendar(
 
   return {
     days,
-    monthLabel: `${MONTH_NAMES[month]} ${year}`,
+    monthLabel: `${monthNames[month]} ${year}`,
     successRate: expectedCount > 0 ? Math.round((doneCount / expectedCount) * 100) : 0,
   };
 }
@@ -129,12 +131,14 @@ function CircularProgress({
   color,
   size = 180,
   strokeWidth = 12,
+  last30DaysLabel = 'LAST 30 DAYS',
 }: {
   completed: number;
   total: number;
   color: string;
   size?: number;
   strokeWidth?: number;
+  last30DaysLabel?: string;
 }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -185,7 +189,7 @@ function CircularProgress({
           {total > 0 ? Math.round((completed / total) * 100) : 0}<Text className="text-2xl text-muted-foreground dark:text-muted-foreground-dark font-light">%</Text>
         </Text>
         <Text className="text-xs font-semibold tracking-widest text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
-          LAST 30 DAYS
+          {last30DaysLabel}
         </Text>
       </View>
     </View>
@@ -201,11 +205,12 @@ export function HabitDetailScreen() {
 
   const { habits, todayEntries, checkIn } = useHabitStore();
   const habit = habits.find((h) => h.id === habitId);
+  const { t } = useI18n();
 
   // Monthly calendar data
   const calendar = useMemo(
-    () => buildMonthCalendar(habitId, habit?.createdAt || '', habit?.frequency),
-    [habitId, habit, todayEntries],
+    () => buildMonthCalendar(habitId, habit?.createdAt || '', habit?.frequency, t.monthNames),
+    [habitId, habit, todayEntries, t],
   );
 
   const streak = useMemo(() => {
@@ -279,7 +284,7 @@ export function HabitDetailScreen() {
   if (!habit) {
     return (
       <SafeAreaView className="flex-1 bg-background dark:bg-background-dark items-center justify-center">
-        <Text className="text-muted-foreground dark:text-muted-foreground-dark">Habit not found</Text>
+        <Text className="text-muted-foreground dark:text-muted-foreground-dark">{t.habitNotFound}</Text>
       </SafeAreaView>
     );
   }
@@ -292,7 +297,7 @@ export function HabitDetailScreen() {
           <Ionicons name="chevron-back" size={24} color={isDark ? '#FAFAFA' : '#0A0A0A'} />
         </TouchableOpacity>
         <Text className="text-lg font-semibold text-foreground dark:text-foreground-dark">
-          Details
+          {t.details}
         </Text>
         <TouchableOpacity
           hitSlop={12}
@@ -301,7 +306,7 @@ export function HabitDetailScreen() {
           }
         >
           <Text className="text-base font-medium" style={{ color: habit.color }}>
-            Edit
+            {t.edit}
           </Text>
         </TouchableOpacity>
       </View>
@@ -334,7 +339,7 @@ export function HabitDetailScreen() {
               <Ionicons name="flame" size={20} color="#F97316" style={{ marginLeft: 2 }} />
             </View>
             <Text className="text-[10px] font-semibold tracking-widest text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
-              CURRENT STREAK
+              {t.currentStreak}
             </Text>
           </View>
           <View className="w-px h-8 bg-border dark:bg-border-dark" />
@@ -346,7 +351,7 @@ export function HabitDetailScreen() {
               <Ionicons name="trophy-sharp" size={20} color="#F59E0B" style={{ marginLeft: 2 }} />
             </View>
             <Text className="text-[10px] font-semibold tracking-widest text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
-              TOTAL COMPLETIONS
+              {t.totalCompletions}
             </Text>
           </View>
         </Animated.View>
@@ -357,6 +362,7 @@ export function HabitDetailScreen() {
             completed={thirtyDayRate.completed}
             total={thirtyDayRate.total}
             color={habit.color}
+            last30DaysLabel={t.last30Days}
           />
         </Animated.View>
 
@@ -367,13 +373,13 @@ export function HabitDetailScreen() {
               {calendar.monthLabel.toUpperCase()}
             </Text>
             <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
-              {calendar.successRate}% Success
+              {calendar.successRate}{t.successPercent}
             </Text>
           </View>
 
           {/* Weekday headers */}
           <View className="flex-row mb-1">
-            {WEEKDAY_LABELS.map((d, i) => (
+            {t.weekdayHeaders.map((d, i) => (
               <View key={i} style={{ flex: 1 }} className="items-center py-1">
                 <Text className="text-xs font-medium text-foreground dark:text-foreground-dark">
                   {d}
