@@ -70,6 +70,15 @@ export function initDatabase(): void {
   if (!colNames.includes('unit')) {
     database.execSync(`ALTER TABLE habits ADD COLUMN unit TEXT NOT NULL DEFAULT 'times'`);
   }
+  if (!colNames.includes('sort_order')) {
+    database.execSync(`ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`);
+    // Backfill: assign sort_order based on current created_at order
+    database.execSync(`
+      UPDATE habits SET sort_order = (
+        SELECT COUNT(*) FROM habits AS h2 WHERE h2.created_at < habits.created_at
+      )
+    `);
+  }
 }
 
 // ─── Habits CRUD ────────────────────────────────────────
@@ -78,7 +87,7 @@ export function initDatabase(): void {
 export function getAllHabits(): Habit[] {
   const database = getDatabase();
   const rows = database.getAllSync<any>(
-    'SELECT * FROM habits WHERE archived_at IS NULL ORDER BY created_at ASC'
+    'SELECT * FROM habits WHERE archived_at IS NULL ORDER BY sort_order ASC, created_at ASC'
   );
   return rows.map(rowToHabit);
 }
@@ -86,9 +95,12 @@ export function getAllHabits(): Habit[] {
 /** 插入一个习惯 */
 export function insertHabit(habit: Habit): void {
   const database = getDatabase();
+  // New habits get sort_order = max + 1 so they appear at the end
+  const maxRow = database.getFirstSync<{ m: number | null }>('SELECT MAX(sort_order) AS m FROM habits');
+  const nextOrder = (maxRow?.m ?? -1) + 1;
   database.runSync(
-    `INSERT INTO habits (id, name, icon, color, note, frequency_type, frequency_days_of_week, frequency_times_per_week, daily_target, unit, reminder_time, created_at, archived_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO habits (id, name, icon, color, note, frequency_type, frequency_days_of_week, frequency_times_per_week, daily_target, unit, reminder_time, created_at, archived_at, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     habit.id,
     habit.name,
     habit.icon,
@@ -102,6 +114,7 @@ export function insertHabit(habit: Habit): void {
     habit.reminders && habit.reminders.length > 0 ? JSON.stringify(habit.reminders) : null,
     habit.createdAt,
     habit.archivedAt ?? null,
+    nextOrder,
   );
 }
 
@@ -135,6 +148,14 @@ export function deleteHabitFromDB(id: string): void {
   const database = getDatabase();
   database.runSync('DELETE FROM entries WHERE habit_id = ?', id);
   database.runSync('DELETE FROM habits WHERE id = ?', id);
+}
+
+/** 批量更新排序 */
+export function updateHabitSortOrders(orderedIds: string[]): void {
+  const database = getDatabase();
+  for (let i = 0; i < orderedIds.length; i++) {
+    database.runSync('UPDATE habits SET sort_order = ? WHERE id = ?', i, orderedIds[i]);
+  }
 }
 
 // ─── Entries CRUD ───────────────────────────────────────

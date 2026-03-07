@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Animated, Alert, useColorScheme } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import ReAnimated, {
   FadeInDown,
   FadeOut,
@@ -162,6 +163,7 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
   }));
 
   const handlePress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Animated.sequence([
       Animated.spring(scale, { toValue: 0.93, useNativeDriver: true, speed: 50 }),
       Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 30 }),

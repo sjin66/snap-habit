@@ -236,7 +236,7 @@ export function NewHabitScreen() {
 
     // Schedule or cancel notifications
     if (habitReminders && habitReminders.length > 0) {
-      await scheduleHabitReminders(habitId, name.trim(), habitReminders);
+      await scheduleHabitReminders(habitId, name.trim(), habitReminders, frequency);
     } else {
       await cancelHabitReminders(habitId);
     }

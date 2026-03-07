@@ -6,11 +6,17 @@ import {
   insertHabit,
   updateHabitInDB,
   deleteHabitFromDB,
+  updateHabitSortOrders,
   insertEntry,
   getEntriesByDate,
   deleteEntryByHabitAndDate,
   getEntriesByHabitAndRange,
 } from '../services/database';
+import {
+  cancelHabitReminders,
+  scheduleHabitReminders,
+  refreshAllReminders,
+} from '../services/notifications';
 
 interface HabitState {
   habits: Habit[];
@@ -38,10 +44,10 @@ const getToday = () => {
 };
 
 /** Check if a given date is a rest day for a habit's frequency config */
-function isRestDay(frequency: { type: string; daysOfWeek?: number[] }, date: Date): boolean {
+export function isRestDay(frequency: { type: string; daysOfWeek?: number[] }, date: Date): boolean {
   if (frequency.type === 'daily') return false;
   if (frequency.type === 'weekly' || frequency.type === 'custom') {
-    const dow = date.getDay(); // 0=Sun ... 6=Sat
+    const dow = date.getDay() || 7; // Convert JS 0=Sun to ISO 7=Sun (Mon=1..Sun=7)
     if (frequency.daysOfWeek && frequency.daysOfWeek.length > 0) {
       return !frequency.daysOfWeek.includes(dow);
     }
@@ -59,6 +65,11 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     const habits = getAllHabits();
     const todayEntries = getEntriesByDate(getToday());
     set({ habits, todayEntries, isLoading: false });
+
+    // Refresh notifications: cancel reminders for already-completed habits,
+    // reschedule for uncompleted ones
+    const completedIds = new Set(todayEntries.map((e) => e.habitId));
+    refreshAllReminders(habits, completedIds).catch(() => {});
   },
 
   setHabits: (habits) => set({ habits }),
@@ -90,6 +101,8 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         .filter(Boolean) as Habit[];
       return { habits: reordered };
     });
+    // Persist sort order to database
+    updateHabitSortOrders(orderedIds);
   },
 
   checkIn: (habitId) => {
@@ -107,6 +120,9 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     };
     insertEntry(entry);
     set((state) => ({ todayEntries: [...state.todayEntries, entry] }));
+
+    // Cancel today's remaining reminders for this habit
+    cancelHabitReminders(habitId).catch(() => {});
   },
 
   uncheckIn: (habitId) => {
@@ -117,6 +133,12 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         (e) => !(e.habitId === habitId && e.date === today)
       ),
     }));
+
+    // Reschedule reminders since the habit is now uncompleted
+    const habit = get().habits.find((h) => h.id === habitId);
+    if (habit?.reminders && habit.reminders.length > 0) {
+      scheduleHabitReminders(habitId, habit.name, habit.reminders, habit.frequency).catch(() => {});
+    }
   },
 
   getTodayItems: (): TodayHabitItem[] => {

@@ -15,7 +15,7 @@ export interface Habit {
 
 export interface FrequencyConfig {
   type: 'daily' | 'weekly' | 'custom';
-  daysOfWeek?: number[];  // 0=Sun, 1=Mon, ... 6=Sat
+  daysOfWeek?: number[];  // ISO: 1=Mon, 2=Tue, ... 7=Sun
   timesPerWeek?: number;
 }
 

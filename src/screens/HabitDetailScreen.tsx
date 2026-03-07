@@ -18,7 +18,7 @@ import Animated, {
   withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { useHabitStore } from '../stores/habitStore';
+import { useHabitStore, isRestDay } from '../stores/habitStore';
 import { getEntriesByHabitAndRange } from '../services/database';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -41,7 +41,7 @@ function daysAgo(n: number): Date {
 type CalendarDay = {
   date: string;
   day: number;
-  status: 'done' | 'missed' | 'future' | 'before';
+  status: 'done' | 'missed' | 'future' | 'before' | 'rest';
   isToday: boolean;
 };
 
@@ -56,6 +56,7 @@ const MONTH_NAMES = [
 function buildMonthCalendar(
   habitId: string,
   createdAt: string,
+  frequency?: { type: string; daysOfWeek?: number[] },
 ): { days: (CalendarDay | null)[]; monthLabel: string; successRate: number } {
   const now = new Date();
   const year = now.getFullYear();
@@ -86,6 +87,9 @@ function buildMonthCalendar(
     const isFuture = dateStr > todayStr;
     const isBefore = dateStr < createdDate;
 
+    const dayDate = new Date(year, month, d);
+    const rest = frequency ? isRestDay(frequency, dayDate) : false;
+
     let status: CalendarDay['status'];
     if (isFuture) {
       status = 'future';
@@ -95,6 +99,9 @@ function buildMonthCalendar(
       status = 'done';
       doneCount++;
       expectedCount++;
+    } else if (rest) {
+      status = 'rest';
+      // Rest days don't count toward expected or missed
     } else {
       status = 'missed';
       expectedCount++;
@@ -197,27 +204,35 @@ export function HabitDetailScreen() {
 
   // Monthly calendar data
   const calendar = useMemo(
-    () => buildMonthCalendar(habitId, habit?.createdAt || ''),
+    () => buildMonthCalendar(habitId, habit?.createdAt || '', habit?.frequency),
     [habitId, habit, todayEntries],
   );
 
   const streak = useMemo(() => {
-    // Count consecutive days completed going backward from today
+    // Count consecutive days completed going backward from today (skip rest days)
     let count = 0;
+    const d = new Date();
     for (let i = 0; i < 365; i++) {
-      const dateStr = formatDate(daysAgo(i));
+      const dateStr = formatDate(d);
+      // Skip rest days — they don't break or count toward streak
+      if (habit?.frequency && isRestDay(habit.frequency, new Date(d))) {
+        d.setDate(d.getDate() - 1);
+        continue;
+      }
       const entries = getEntriesByHabitAndRange(habitId, dateStr, dateStr);
       if (entries.length > 0) {
         count++;
-      } else if (i > 0) {
-        break;
-      } else {
+      } else if (i === 0) {
         // Today not yet done — check from yesterday
+        d.setDate(d.getDate() - 1);
         continue;
+      } else {
+        break;
       }
+      d.setDate(d.getDate() - 1);
     }
     return count;
-  }, [habitId, todayEntries]);
+  }, [habitId, habit, todayEntries]);
 
   const totalCompletions = useMemo(() => {
     // All-time completions for this habit
@@ -247,7 +262,7 @@ export function HabitDetailScreen() {
     const freq = habit?.frequency;
     for (let i = 0; i < totalDays; i++) {
       const d = new Date(new Date(effectiveStart + 'T00:00:00').getTime() + i * msPerDay);
-      const dow = d.getDay();
+      const dow = d.getDay() || 7; // Convert JS 0=Sun to ISO 7=Sun (Mon=1..Sun=7)
       if (freq && (freq.type === 'weekly' || freq.type === 'custom') && freq.daysOfWeek && freq.daysOfWeek.length > 0) {
         if (!freq.daysOfWeek.includes(dow)) continue; // rest day
       }
@@ -402,6 +417,13 @@ export function HabitDetailScreen() {
                         }}
                       >
                         <Text className="text-xs font-medium text-foreground dark:text-foreground-dark">
+                          {cell.day}
+                        </Text>
+                      </View>
+                    ) : cell.status === 'rest' ? (
+                      /* rest day — subtle muted dot */
+                      <View className="w-8 h-8 rounded-full items-center justify-center opacity-40">
+                        <Text className="text-xs font-medium text-muted-foreground dark:text-muted-foreground-dark">
                           {cell.day}
                         </Text>
                       </View>
