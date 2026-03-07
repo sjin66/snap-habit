@@ -196,6 +196,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         name: habit.name,
         icon: habit.icon,
         color: habit.color,
+        category: habit.category,
         dailyTarget: habit.dailyTarget,
         unit: habit.unit,
         isCompleted: completed,

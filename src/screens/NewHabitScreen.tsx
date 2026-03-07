@@ -16,7 +16,8 @@ import {
   scheduleHabitReminders,
   cancelHabitReminders,
 } from '../services/notifications';
-import type { FrequencyConfig } from '@types/habit';
+import type { FrequencyConfig, HabitCategory } from '@types/habit';
+import { HABIT_CATEGORIES, getCategoryColor } from '../types/habit';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import WheelPicker from '../components/WheelPicker';
 
@@ -65,6 +66,7 @@ type NewHabitRouteParams = {
     presetColor?: string;
     presetGoal?: number;
     presetUnit?: string;
+    presetCategory?: string;
   };
 };
 
@@ -86,6 +88,9 @@ export function NewHabitScreen() {
   const [dailyTarget, setDailyTarget] = useState(editHabit?.dailyTarget ?? preset.presetGoal ?? 1);
   const [targetText, setTargetText] = useState(String(editHabit?.dailyTarget ?? preset.presetGoal ?? 1));
   const [unit, setUnit] = useState(editHabit?.unit ?? preset.presetUnit ?? 'times');
+  const [category, setCategory] = useState<HabitCategory | undefined>(
+    editHabit?.category ?? (preset.presetCategory as HabitCategory | undefined) ?? undefined,
+  );
   const [freqType, setFreqType] = useState<'daily' | 'weekly'>(
     (editHabit?.frequency?.type === 'weekly' ? 'weekly' : 'daily') as 'daily' | 'weekly',
   );
@@ -213,6 +218,7 @@ export function NewHabitScreen() {
         name: name.trim(),
         icon: selectedIcon,
         color: selectedColor,
+        category,
         note: note.trim() || undefined,
         frequency,
         dailyTarget,
@@ -225,6 +231,7 @@ export function NewHabitScreen() {
         name: name.trim(),
         icon: selectedIcon,
         color: selectedColor,
+        category,
         note: note.trim() || undefined,
         frequency,
         dailyTarget,
@@ -298,6 +305,40 @@ export function NewHabitScreen() {
           APPEARANCE
         </Text>
         <View className="mx-5 rounded-2xl px-4 py-4 bg-card dark:bg-card-dark border border-border dark:border-border-dark">
+          {/* Category */}
+          <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">Category</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
+            <View className="flex-row gap-2">
+              {HABIT_CATEGORIES.map((cat) => {
+                const isSelected = category === cat.name;
+                const chipColor = getCategoryColor(cat.name, isDark) ?? cat.color;
+                return (
+                  <TouchableOpacity
+                    key={cat.name}
+                    onPress={() => setCategory(isSelected ? undefined : cat.name)}
+                    className={`px-3.5 py-1.5 rounded-full ${
+                      isSelected
+                        ? ''
+                        : 'border border-border dark:border-border-dark'
+                    }`}
+                    style={isSelected ? { backgroundColor: chipColor + '20', borderWidth: 1.5, borderColor: chipColor } : undefined}
+                  >
+                    <Text
+                      className={`text-sm font-medium ${
+                        isSelected
+                          ? ''
+                          : 'text-foreground dark:text-foreground-dark'
+                      }`}
+                      style={isSelected ? { color: chipColor } : undefined}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+
           {/* Icon */}
           <Text className="text-sm font-medium mb-3 text-foreground dark:text-foreground-dark">Icon</Text>
           <ScrollView
@@ -362,6 +403,7 @@ export function NewHabitScreen() {
               })}
             </View>
           </ScrollView>
+
         </View>
 
         {/* ── GOAL & FREQUENCY ───────────────────────── */}

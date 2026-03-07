@@ -79,6 +79,9 @@ export function initDatabase(): void {
       )
     `);
   }
+  if (!colNames.includes('category')) {
+    database.execSync(`ALTER TABLE habits ADD COLUMN category TEXT`);
+  }
 }
 
 // ─── Habits CRUD ────────────────────────────────────────
@@ -99,13 +102,14 @@ export function insertHabit(habit: Habit): void {
   const maxRow = database.getFirstSync<{ m: number | null }>('SELECT MAX(sort_order) AS m FROM habits');
   const nextOrder = (maxRow?.m ?? -1) + 1;
   database.runSync(
-    `INSERT INTO habits (id, name, icon, color, note, frequency_type, frequency_days_of_week, frequency_times_per_week, daily_target, unit, reminder_time, created_at, archived_at, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO habits (id, name, icon, color, note, category, frequency_type, frequency_days_of_week, frequency_times_per_week, daily_target, unit, reminder_time, created_at, archived_at, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     habit.id,
     habit.name,
     habit.icon,
     habit.color,
     habit.note ?? null,
+    habit.category ?? null,
     habit.frequency.type,
     habit.frequency.daysOfWeek ? JSON.stringify(habit.frequency.daysOfWeek) : null,
     habit.frequency.timesPerWeek ?? null,
@@ -128,6 +132,7 @@ export function updateHabitInDB(id: string, updates: Partial<Habit>): void {
   if (updates.icon !== undefined) { fields.push('icon = ?'); values.push(updates.icon); }
   if (updates.color !== undefined) { fields.push('color = ?'); values.push(updates.color); }
   if (updates.note !== undefined) { fields.push('note = ?'); values.push(updates.note); }
+  if (updates.category !== undefined) { fields.push('category = ?'); values.push(updates.category); }
   if (updates.dailyTarget !== undefined) { fields.push('daily_target = ?'); values.push(updates.dailyTarget); }
   if (updates.unit !== undefined) { fields.push('unit = ?'); values.push(updates.unit); }
   if (updates.reminders !== undefined) { fields.push('reminder_time = ?'); values.push(updates.reminders && updates.reminders.length > 0 ? JSON.stringify(updates.reminders) : null); }
@@ -256,6 +261,7 @@ function rowToHabit(row: any): Habit {
     name: row.name,
     icon: row.icon,
     color: row.color,
+    category: row.category ?? undefined,
     note: row.note ?? undefined,
     frequency,
     dailyTarget: row.daily_target ?? 1,

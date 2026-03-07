@@ -67,7 +67,7 @@ export function TodayScreen() {
   const total = activeItems.length;
 
   // Stable key for dependency tracking (changes only on actual data change)
-  const itemsKey = todayItems.map((i) => `${i.habitId}:${i.isCompleted}:${i.status}`).join(',');
+  const itemsKey = todayItems.map((i) => `${i.habitId}:${i.isCompleted}:${i.status}:${i.name}:${i.category ?? ''}`).join(',');
 
   // Display list: sorted unchecked-first, with animated reorder on check-in
   const [displayItems, setDisplayItems] = useState<TodayHabitItem[]>([]);

@@ -22,14 +22,14 @@ interface CommonHabit {
 }
 
 const COMMON_HABITS: CommonHabit[] = [
-  { name: 'Hydration',   category: 'HEALTH',      icon: 'water',           color: '#3B82F6', goal: 2000, unit: 'ml' },
-  { name: 'Reading',     category: 'MINDSET',      icon: 'book',            color: '#8B5CF6', goal: 30, unit: 'min' },
-  { name: 'Meditation',  category: 'MINDFULNESS',  icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
-  { name: 'Exercise',    category: 'FITNESS',       icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },
-  { name: 'Journaling',  category: 'GROWTH',        icon: 'pencil',          color: '#F59E0B', goal: 1,  unit: 'times' },
-  { name: 'Deep Work',   category: 'FOCUS',         icon: 'flash',           color: '#F97316', goal: 2,  unit: 'hours' },
-  { name: 'Sleep Early', category: 'HEALTH',        icon: 'moon',            color: '#6366F1', goal: 1,  unit: 'times' },
-  { name: 'Nutrition',   category: 'HEALTH',        icon: 'nutrition',       color: '#14B8A6', goal: 3,  unit: 'times' },
+  { name: 'Hydration',   category: 'Health',        icon: 'water',           color: '#3B82F6', goal: 2000, unit: 'ml' },
+  { name: 'Reading',     category: 'Learning',      icon: 'book',            color: '#8B5CF6', goal: 30, unit: 'min' },
+  { name: 'Meditation',  category: 'Mindfulness',   icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
+  { name: 'Exercise',    category: 'Fitness',       icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },
+  { name: 'Journaling',  category: 'Mindfulness',   icon: 'pencil',          color: '#F59E0B', goal: 1,  unit: 'times' },
+  { name: 'Deep Work',   category: 'Productivity',  icon: 'flash',           color: '#F97316', goal: 2,  unit: 'hours' },
+  { name: 'Sleep Early', category: 'Health',        icon: 'moon',            color: '#6366F1', goal: 1,  unit: 'times' },
+  { name: 'Nutrition',   category: 'Health',        icon: 'nutrition',       color: '#14B8A6', goal: 3,  unit: 'times' },
 ];
 
 export function AddHabitScreen() {
@@ -45,6 +45,7 @@ export function AddHabitScreen() {
       presetColor: habit.color,
       presetGoal: habit.goal,
       presetUnit: habit.unit,
+      presetCategory: habit.category,
     });
   };
 

@@ -21,6 +21,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import type { TodayHabitItem } from '../types/habit';
+import { getCategoryColor } from '../types/habit';
 
 /** Separate component so useAnimatedStyle hooks run on the UI thread */
 function RightActions({
@@ -272,11 +273,30 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
             {item.name}
           </Text>
         ) : (
-          <Text
-            className="text-base font-semibold mb-1 text-foreground dark:text-foreground-dark"
-          >
-            {item.name}
-          </Text>
+          <View className="flex-row items-center mb-1">
+            <Text
+              className="text-base font-semibold text-foreground dark:text-foreground-dark"
+              numberOfLines={1}
+              style={{ flexShrink: 1 }}
+            >
+              {item.name}
+            </Text>
+            {item.category && (
+              <View
+                style={{
+                  backgroundColor: getCategoryColor(item.category, isDark) + '20',
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 6,
+                  marginLeft: 6,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: getCategoryColor(item.category, isDark) }}>
+                  {item.category}
+                </Text>
+              </View>
+            )}
+          </View>
         )}
         <View className="flex-row items-center">
           {isRest ? (
