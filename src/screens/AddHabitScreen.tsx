@@ -110,15 +110,15 @@ export function AddHabitScreen() {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => (navigation as any).navigate('NewHabit', {})}
-          className="flex-row items-center justify-center py-4 rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark"
+          className="flex-row items-center justify-center py-4 rounded-2xl bg-primary dark:bg-primary-dark"
         >
           <Ionicons
             name="add-circle"
             size={22}
-            color={isDark ? '#FAFAFA' : '#0A0A0A'}
+            color={isDark ? '#0A0A0A' : '#FAFAFA'}
             style={{ marginRight: 8 }}
           />
-          <Text className="text-base font-semibold text-foreground dark:text-foreground-dark">
+          <Text className="text-base font-semibold text-primary-foreground dark:text-primary-foreground-dark">
             Custom Habit
           </Text>
         </TouchableOpacity>

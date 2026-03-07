@@ -498,9 +498,12 @@ export function NewHabitScreen() {
               })}
             </View>
           </ScrollView>
+        </View>
 
+        {/* ── FREQUENCY ──────────────────────────────── */}
+        <View className="mx-5 mt-4 rounded-2xl px-4 py-4 bg-card dark:bg-card-dark border border-border dark:border-border-dark">
           {/* Daily / Weekly toggle */}
-          <View className="flex-row rounded-xl mb-4 gap-3">
+          <View className={`flex-row rounded-xl gap-3 ${freqType === 'weekly' ? 'mb-4' : ''}`}>
             <TouchableOpacity
               onPress={() => setFreqType('daily')}
               className={`flex-1 py-2.5 items-center rounded-xl ${
@@ -537,7 +540,36 @@ export function NewHabitScreen() {
 
           {/* Weekday selector */}
           {freqType === 'weekly' && (
-            <View className="flex-row justify-between">
+            <View>
+              {/* Quick presets */}
+              <View className="flex-row mb-3" style={{ gap: 8 }}>
+                {([
+                  { label: 'Weekdays', days: [1, 2, 3, 4, 5] },
+                  { label: 'Weekends', days: [6, 7] },
+                  { label: 'Every Day', days: [1, 2, 3, 4, 5, 6, 7] },
+                ] as const).map((preset) => {
+                  const isActive = preset.days.length === selectedDays.length &&
+                    preset.days.every((d) => selectedDays.includes(d));
+                  return (
+                    <TouchableOpacity
+                      key={preset.label}
+                      onPress={() => setSelectedDays([...preset.days])}
+                      className={`flex-1 py-1.5 rounded-lg items-center ${
+                        isActive ? 'bg-secondary dark:bg-secondary-dark' : 'bg-section-bg dark:bg-section-bg-dark'
+                      }`}
+                    >
+                      <Text className={`text-xs font-semibold ${
+                        isActive ? 'text-secondary-foreground dark:text-secondary-foreground-dark' : 'text-muted-foreground dark:text-muted-foreground-dark'
+                      }`}>
+                        {preset.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Day circles */}
+              <View className="flex-row justify-between">
               {WEEKDAYS.map((label, idx) => {
                 const dayVal = WEEKDAY_VALUES[idx];
                 const isActive = selectedDays.includes(dayVal);
@@ -546,18 +578,18 @@ export function NewHabitScreen() {
                     key={idx}
                     onPress={() => toggleDay(dayVal)}
                     className={`w-10 h-10 rounded-full items-center justify-center ${
-                      isActive ? '' : 'bg-section-bg dark:bg-section-bg-dark'
+                      isActive ? 'bg-primary dark:bg-primary-dark' : 'bg-section-bg dark:bg-section-bg-dark'
                     }`}
-                    style={isActive ? { backgroundColor: selectedColor } : undefined}
                   >
                     <Text className={`text-sm font-semibold ${
-                      isActive ? 'text-white' : 'text-muted-foreground dark:text-muted-foreground-dark'
+                      isActive ? 'text-primary-foreground dark:text-primary-foreground-dark' : 'text-muted-foreground dark:text-muted-foreground-dark'
                     }`}>
                       {label}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
+              </View>
             </View>
           )}
         </View>
