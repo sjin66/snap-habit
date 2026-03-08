@@ -167,4 +167,6 @@ export default {
   notificationsDesc: 'Receive habit reminders',
   notificationsEnabled: 'Notifications enabled',
   notificationsDisabledMsg: 'All reminders have been cancelled',
+  notifActionDone: '✅ Done',
+  notifActionSkip: '⏭ Skip',
 } as const;

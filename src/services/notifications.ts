@@ -1,6 +1,11 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+// ─── Notification action identifiers ───
+export const HABIT_CATEGORY = 'habit-reminder';
+export const ACTION_CHECKIN = 'CHECKIN';
+export const ACTION_SKIP = 'SKIP';
+
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -11,6 +16,25 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+/**
+ * Register a notification category with "Done" and "Skip" quick actions.
+ * Call once on app startup.
+ */
+export async function setupNotificationCategories(): Promise<void> {
+  await Notifications.setNotificationCategoryAsync(HABIT_CATEGORY, [
+    {
+      identifier: ACTION_CHECKIN,
+      buttonTitle: '✅ Done',
+      options: { opensAppToForeground: false },
+    },
+    {
+      identifier: ACTION_SKIP,
+      buttonTitle: '⏭ Skip',
+      options: { opensAppToForeground: false },
+    },
+  ]);
+}
 
 /** Request notification permissions. Returns true if granted. */
 export async function requestPermissions(): Promise<boolean> {
@@ -55,10 +79,12 @@ export async function scheduleHabitReminders(
 
   for (let i = 0; i < reminders.length; i++) {
     const [hours, minutes] = reminders[i].split(':').map(Number);
-    const content = {
+    const content: Notifications.NotificationContentInput = {
       title: '⏰ Habit Reminder',
       body: `Time to work on "${habitName}"!`,
       sound: true as const,
+      categoryIdentifier: HABIT_CATEGORY,
+      data: { habitId },
     };
 
     if (isWeekly) {

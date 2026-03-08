@@ -167,4 +167,6 @@ export default {
   notificationsDesc: '接收习惯提醒',
   notificationsEnabled: '通知已开启',
   notificationsDisabledMsg: '所有提醒已取消',
+  notifActionDone: '✅ 完成',
+  notifActionSkip: '⏭ 跳过',
 } as const;
