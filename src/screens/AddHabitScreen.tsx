@@ -16,6 +16,7 @@ import { useI18n } from '../i18n';
 interface CommonHabit {
   nameKey: string;
   categoryKey: string;
+  category: string; // English DB name (matches HabitCategory type)
   icon: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
   goal: number;
@@ -23,14 +24,14 @@ interface CommonHabit {
 }
 
 const COMMON_HABITS: CommonHabit[] = [
-  { nameKey: 'habitHydration',   categoryKey: 'catHealth',        icon: 'water',           color: '#3B82F6', goal: 2000, unit: 'ml' },
-  { nameKey: 'habitReading',     categoryKey: 'catLearning',      icon: 'book',            color: '#8B5CF6', goal: 30, unit: 'min' },
-  { nameKey: 'habitMeditation',  categoryKey: 'catMindfulness',   icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
-  { nameKey: 'habitExercise',    categoryKey: 'catFitness',       icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },
-  { nameKey: 'habitJournaling',  categoryKey: 'catMindfulness',   icon: 'pencil',          color: '#F59E0B', goal: 1,  unit: 'times' },
-  { nameKey: 'habitDeepWork',    categoryKey: 'catProductivity',  icon: 'flash',           color: '#F97316', goal: 2,  unit: 'hours' },
-  { nameKey: 'habitSleepEarly',  categoryKey: 'catHealth',        icon: 'moon',            color: '#6366F1', goal: 1,  unit: 'times' },
-  { nameKey: 'habitNutrition',   categoryKey: 'catHealth',        icon: 'nutrition',       color: '#14B8A6', goal: 3,  unit: 'times' },
+  { nameKey: 'habitHydration',   categoryKey: 'catHealth',        category: 'Health',       icon: 'water',           color: '#3B82F6', goal: 2000, unit: 'ml' },
+  { nameKey: 'habitReading',     categoryKey: 'catLearning',      category: 'Learning',     icon: 'book',            color: '#8B5CF6', goal: 30, unit: 'min' },
+  { nameKey: 'habitMeditation',  categoryKey: 'catMindfulness',   category: 'Mindfulness',  icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
+  { nameKey: 'habitExercise',    categoryKey: 'catFitness',       category: 'Fitness',      icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },
+  { nameKey: 'habitJournaling',  categoryKey: 'catMindfulness',   category: 'Mindfulness',  icon: 'pencil',          color: '#F59E0B', goal: 1,  unit: 'times' },
+  { nameKey: 'habitDeepWork',    categoryKey: 'catProductivity',  category: 'Productivity', icon: 'flash',           color: '#F97316', goal: 2,  unit: 'hours' },
+  { nameKey: 'habitSleepEarly',  categoryKey: 'catHealth',        category: 'Health',       icon: 'moon',            color: '#6366F1', goal: 1,  unit: 'times' },
+  { nameKey: 'habitNutrition',   categoryKey: 'catHealth',        category: 'Health',       icon: 'nutrition',       color: '#14B8A6', goal: 3,  unit: 'times' },
 ];
 
 export function AddHabitScreen() {
@@ -47,7 +48,7 @@ export function AddHabitScreen() {
       presetColor: habit.color,
       presetGoal: habit.goal,
       presetUnit: habit.unit,
-      presetCategory: (t as any)[habit.categoryKey],
+      presetCategory: habit.category,
     });
   };
 

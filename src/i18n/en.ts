@@ -169,4 +169,15 @@ export default {
   notificationsDisabledMsg: 'All reminders have been cancelled',
   notifActionDone: '✅ Done',
   notifActionSkip: '⏭ Skip',
+
+  // ── Onboarding ──
+  onboardingTitle1: 'Build Better Habits',
+  onboardingDesc1: 'Track your daily habits with a simple tap.\nSet goals, pick a schedule, and watch your progress grow.',
+  onboardingTitle2: 'See Your Progress',
+  onboardingDesc2: 'Visualize streaks, completion rates, and activity heatmaps.\nStay motivated with real data.',
+  onboardingTitle3: 'Smart Reminders',
+  onboardingDesc3: 'Get timely notifications and check in directly from the notification — no need to open the app.',
+  onboardingSkip: 'Skip',
+  onboardingNext: 'Next',
+  onboardingGetStarted: 'Get Started',
 } as const;

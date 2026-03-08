@@ -169,4 +169,15 @@ export default {
   notificationsDisabledMsg: '所有提醒已取消',
   notifActionDone: '✅ 完成',
   notifActionSkip: '⏭ 跳过',
+
+  // ── Onboarding ──
+  onboardingTitle1: '养成好习惯',
+  onboardingDesc1: '轻轻一点追踪每日习惯。\n设定目标、选择频率，看着你的进步一点点积累。',
+  onboardingTitle2: '可视化进度',
+  onboardingDesc2: '查看连续打卡、完成率和活跃度热力图。\n用真实数据保持动力。',
+  onboardingTitle3: '智能提醒',
+  onboardingDesc3: '准时收到提醒通知，直接在通知上打卡——无需打开 App。',
+  onboardingSkip: '跳过',
+  onboardingNext: '下一步',
+  onboardingGetStarted: '开始使用',
 } as const;
