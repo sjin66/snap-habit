@@ -154,7 +154,6 @@ export default {
   encourageZero: 'Start tracking your habits today!',
 
   // ── Navigation ──
-  discoverComingSoon: 'Discover (coming soon)',
   profileComingSoon: 'Profile (coming soon)',
 
   // ── Settings ──
@@ -180,4 +179,71 @@ export default {
   onboardingSkip: 'Skip',
   onboardingNext: 'Next',
   onboardingGetStarted: 'Get Started',
+
+  // ── Achievements ──
+  achievements: 'Achievements',
+  achievementsUnlocked: 'Unlocked',
+  achievementsProgress: 'Progress',
+  achievementsLocked: 'Locked',
+  achievementsOf: 'of',
+  achievementsEmpty: 'Start tracking habits to unlock achievements!',
+
+  // Achievement categories
+  achCatStreak: 'Streaks',
+  achCatCheckins: 'Check-ins',
+  achCatHabits: 'Habits',
+  achCatPerfect: 'Perfect Days',
+  achCatActive: 'Active Days',
+
+  // Streak achievements
+  achFirstFlameName: 'First Flame',
+  achFirstFlameDesc: 'Reach a 3-day streak',
+  achOnFireName: 'On Fire',
+  achOnFireDesc: 'Reach a 7-day streak',
+  achUnstoppableName: 'Unstoppable',
+  achUnstoppableDesc: 'Reach a 14-day streak',
+  achHabitMasterName: 'Habit Master',
+  achHabitMasterDesc: 'Reach a 30-day streak',
+  achIronWillName: 'Iron Will',
+  achIronWillDesc: 'Reach a 60-day streak',
+  achLegendName: 'Legend',
+  achLegendDesc: 'Reach a 100-day streak',
+
+  // Check-in achievements
+  achFirstStepName: 'First Step',
+  achFirstStepDesc: 'Complete your first check-in',
+  achGettingStartedName: 'Getting Started',
+  achGettingStartedDesc: 'Complete 10 check-ins',
+  achCommittedName: 'Committed',
+  achCommittedDesc: 'Complete 50 check-ins',
+  achCenturionName: 'Centurion',
+  achCenturionDesc: 'Complete 100 check-ins',
+  achDedicatedName: 'Dedicated',
+  achDedicatedDesc: 'Complete 500 check-ins',
+
+  // Habit achievements
+  achSeedPlantedName: 'Seed Planted',
+  achSeedPlantedDesc: 'Create your first habit',
+  achGrowingGardenName: 'Growing Garden',
+  achGrowingGardenDesc: 'Create 3 habits',
+  achHabitForestName: 'Habit Forest',
+  achHabitForestDesc: 'Create 5 habits',
+
+  // Perfect day achievements
+  achPerfectDayName: 'Perfect Day',
+  achPerfectDayDesc: 'Complete all habits in a day',
+  achPerfectWeekName: 'Perfect Week',
+  achPerfectWeekDesc: 'Have 7 perfect days',
+  achPerfectMonthName: 'Perfect Month',
+  achPerfectMonthDesc: 'Have 30 perfect days',
+
+  // Active day achievements
+  achWeekOneName: 'Week One',
+  achWeekOneDesc: 'Be active for 7 days',
+  achMonthOneName: 'Month One',
+  achMonthOneDesc: 'Be active for 30 days',
+  achQuarterName: 'Quarter',
+  achQuarterDesc: 'Be active for 90 days',
+  achHalfYearName: 'Half Year',
+  achHalfYearDesc: 'Be active for 180 days',
 } as const;

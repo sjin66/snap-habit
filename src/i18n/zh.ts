@@ -154,7 +154,6 @@ export default {
   encourageZero: '从今天开始追踪你的习惯吧！',
 
   // ── Navigation ──
-  discoverComingSoon: '发现（即将推出）',
   profileComingSoon: '个人（即将推出）',
 
   // ── Settings ──
@@ -180,4 +179,71 @@ export default {
   onboardingSkip: '跳过',
   onboardingNext: '下一步',
   onboardingGetStarted: '开始使用',
+
+  // ── Achievements ──
+  achievements: '成就',
+  achievementsUnlocked: '已解锁',
+  achievementsProgress: '进度',
+  achievementsLocked: '未解锁',
+  achievementsOf: '/',
+  achievementsEmpty: '开始追踪习惯来解锁成就吧！',
+
+  // Achievement categories
+  achCatStreak: '连续打卡',
+  achCatCheckins: '打卡次数',
+  achCatHabits: '习惯数量',
+  achCatPerfect: '完美日',
+  achCatActive: '活跃天数',
+
+  // Streak achievements
+  achFirstFlameName: '初燃之火',
+  achFirstFlameDesc: '连续打卡 3 天',
+  achOnFireName: '势如破竹',
+  achOnFireDesc: '连续打卡 7 天',
+  achUnstoppableName: '不可阻挡',
+  achUnstoppableDesc: '连续打卡 14 天',
+  achHabitMasterName: '习惯大师',
+  achHabitMasterDesc: '连续打卡 30 天',
+  achIronWillName: '钢铁意志',
+  achIronWillDesc: '连续打卡 60 天',
+  achLegendName: '传奇',
+  achLegendDesc: '连续打卡 100 天',
+
+  // Check-in achievements
+  achFirstStepName: '第一步',
+  achFirstStepDesc: '完成第一次打卡',
+  achGettingStartedName: '初露锋芒',
+  achGettingStartedDesc: '累计打卡 10 次',
+  achCommittedName: '坚定不移',
+  achCommittedDesc: '累计打卡 50 次',
+  achCenturionName: '百夫长',
+  achCenturionDesc: '累计打卡 100 次',
+  achDedicatedName: '全身心投入',
+  achDedicatedDesc: '累计打卡 500 次',
+
+  // Habit achievements
+  achSeedPlantedName: '播下种子',
+  achSeedPlantedDesc: '创建第一个习惯',
+  achGrowingGardenName: '生长花园',
+  achGrowingGardenDesc: '创建 3 个习惯',
+  achHabitForestName: '习惯森林',
+  achHabitForestDesc: '创建 5 个习惯',
+
+  // Perfect day achievements
+  achPerfectDayName: '完美一天',
+  achPerfectDayDesc: '一天内完成所有习惯',
+  achPerfectWeekName: '完美一周',
+  achPerfectWeekDesc: '累计 7 个完美日',
+  achPerfectMonthName: '完美一月',
+  achPerfectMonthDesc: '累计 30 个完美日',
+
+  // Active day achievements
+  achWeekOneName: '第一周',
+  achWeekOneDesc: '活跃 7 天',
+  achMonthOneName: '第一月',
+  achMonthOneDesc: '活跃 30 天',
+  achQuarterName: '一季度',
+  achQuarterDesc: '活跃 90 天',
+  achHalfYearName: '半年',
+  achHalfYearDesc: '活跃 180 天',
 } as const;

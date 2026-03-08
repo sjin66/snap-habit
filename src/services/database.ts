@@ -337,3 +337,32 @@ function rowToEntry(row: any): HabitEntry {
     status: (row.status as 'completed' | 'skipped') ?? 'completed',
   };
 }
+
+// ─── Aggregate Queries (Achievements) ──────────────────
+
+/** Total completed check-ins (excludes skipped) */
+export function getTotalCompletedEntries(): number {
+  const database = getDatabase();
+  const row = database.getFirstSync<{ count: number }>(
+    "SELECT COUNT(*) AS count FROM entries WHERE status != 'skipped'"
+  );
+  return row?.count ?? 0;
+}
+
+/** Number of distinct dates with at least one completed check-in */
+export function getDistinctActiveDays(): number {
+  const database = getDatabase();
+  const row = database.getFirstSync<{ count: number }>(
+    "SELECT COUNT(DISTINCT date) AS count FROM entries WHERE status != 'skipped'"
+  );
+  return row?.count ?? 0;
+}
+
+/** Total habits ever created (including soft-deleted) */
+export function getTotalHabitsCreated(): number {
+  const database = getDatabase();
+  const row = database.getFirstSync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM habits'
+  );
+  return row?.count ?? 0;
+}

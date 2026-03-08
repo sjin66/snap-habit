@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ColorSchemeName } from 'react-native';
+import { View, ColorSchemeName } from 'react-native';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -9,23 +9,13 @@ import { AddHabitScreen } from '../screens/AddHabitScreen';
 import { HabitDetailScreen } from '../screens/HabitDetailScreen';
 import { NewHabitScreen } from '../screens/NewHabitScreen';
 import { StatsScreen } from '../screens/StatsScreen';
+import { AchievementsScreen } from '../screens/AchievementsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import { useI18n } from '../i18n';
-
-// Placeholder screens
-const DiscoverScreen = () => {
-  const { t } = useI18n();
-  return (
-    <View className="flex-1 justify-center items-center bg-background dark:bg-background-dark">
-      <Text className="text-base text-muted-foreground dark:text-muted-foreground-dark">{t.discoverComingSoon}</Text>
-    </View>
-  );
-};
 
 export type RootTabParamList = {
   Today: undefined;
   Stats: undefined;
-  Discover: undefined;
+  Achievements: undefined;
   Profile: undefined;
 };
 
@@ -115,11 +105,11 @@ function TabsNavigator({ isDark }: { isDark: boolean }) {
         }}
       />
       <Tab.Screen
-        name="Discover"
-        component={DiscoverScreen}
+        name="Achievements"
+        component={AchievementsScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="compass" label="DISCOVER" focused={focused} isDark={isDark} />
+            <TabIcon icon="trophy" label="ACHIEVEMENTS" focused={focused} isDark={isDark} />
           ),
         }}
       />
