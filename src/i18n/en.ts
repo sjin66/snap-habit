@@ -9,6 +9,9 @@ export default {
 
   // ── TodayScreen ──
   today: 'Today',
+  emptyStateTitle: 'No habits yet',
+  emptyStateSubtitle: 'Start building better habits today!\nTap the button below to create your first one.',
+  createFirstHabit: 'Create Your First Habit',
   dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   monthNames: [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -105,11 +108,16 @@ export default {
   last30Days: 'LAST 30 DAYS',
   weekdayHeaders: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
   successPercent: '% Success',
+  legendDone: 'Done',
+  legendMissed: 'Missed',
+  legendRest: 'Rest',
+  legendSkipped: 'Skipped',
 
   // ── HabitCard ──
   deleteHabit: 'Delete Habit',
   deleteHabitConfirm: (name: string) => `Are you sure you want to delete "${name}"?`,
   restDay: 'Rest day',
+  skippedDay: 'Skipped',
   streakDaySuffix: 'd',
 
   // ── ProgressCard ──
@@ -155,4 +163,8 @@ export default {
   language: 'Language',
   english: 'English',
   chinese: '中文',
+  notifications: 'Notifications',
+  notificationsDesc: 'Receive habit reminders',
+  notificationsEnabled: 'Notifications enabled',
+  notificationsDisabledMsg: 'All reminders have been cancelled',
 } as const;

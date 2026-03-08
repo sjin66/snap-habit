@@ -21,13 +21,14 @@ import DraggableFlatList, {
 import { ProgressCard } from '../components/ProgressCard';
 import { HabitCard } from '../components/HabitCard';
 import { useHabitStore } from '../stores/habitStore';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useI18n } from '../i18n';
 import type { TodayHabitItem } from '../types/habit';
 
 // Day/month names are now provided by i18n
 
-/** Sort order: active → completed → rest */
-const STATUS_ORDER: Record<string, number> = { active: 0, completed: 1, rest: 2 };
+/** Sort order: active → completed → skipped → rest */
+const STATUS_ORDER: Record<string, number> = { active: 0, completed: 1, skipped: 2, rest: 3 };
 function sortByStatus(a: TodayHabitItem, b: TodayHabitItem): number {
   return (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0);
 }
@@ -41,7 +42,7 @@ function formatDate(dayNames: readonly string[], monthNames: readonly string[]):
 }
 
 export function TodayScreen() {
-  const { habits, checkIn, uncheckIn, deleteHabit, reorderHabits, getTodayItems } = useHabitStore();
+  const { habits, checkIn, uncheckIn, skipHabit, unskipHabit, deleteHabit, reorderHabits, getTodayItems } = useHabitStore();
   const navigation = useNavigation<any>();
   const { t } = useI18n();
   const dateStr = formatDate(t.dayNames, t.monthNames).full;
@@ -59,13 +60,13 @@ export function TodayScreen() {
   }, []);
 
   const todayItems = getTodayItems();
-  // Only count active + completed toward progress (exclude rest days)
-  const activeItems = todayItems.filter((h) => h.status !== 'rest');
+  // Only count active + completed toward progress (exclude rest days and skipped)
+  const activeItems = todayItems.filter((h) => h.status !== 'rest' && h.status !== 'skipped');
   const completed = activeItems.filter((h) => h.isCompleted).length;
   const total = activeItems.length;
 
   // Stable key for dependency tracking (changes only on actual data change)
-  const itemsKey = todayItems.map((i) => `${i.habitId}:${i.isCompleted}:${i.status}:${i.name}:${i.category ?? ''}`).join(',');
+  const itemsKey = todayItems.map((i) => `${i.habitId}:${i.isCompleted}:${i.isSkipped}:${i.status}:${i.name}:${i.category ?? ''}`).join(',');
 
   // Display list: sorted unchecked-first, with animated reorder on check-in
   const [displayItems, setDisplayItems] = useState<TodayHabitItem[]>([]);
@@ -101,6 +102,26 @@ export function TodayScreen() {
   const handleCheckIn = useCallback(
     (habitId: string) => {
       const item = todayItems.find((h) => h.habitId === habitId);
+
+      // If skipped, unskip first (return to active)
+      if (item?.isSkipped) {
+        pendingMoveRef.current = true;
+        unskipHabit(habitId);
+        if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
+        moveTimerRef.current = setTimeout(() => {
+          pendingMoveRef.current = false;
+          setDisplayItems((prev) => {
+            const updated = prev.map((p) =>
+              p.habitId === habitId
+                ? { ...p, isSkipped: false, isCompleted: false, status: 'active' as const }
+                : p
+            );
+            return updated.sort(sortByStatus);
+          });
+        }, 400);
+        return;
+      }
+
       const willComplete = !item?.isCompleted;
 
       // Mark that we have a pending reorder animation
@@ -120,14 +141,43 @@ export function TodayScreen() {
         setDisplayItems((prev) => {
           const updated = prev.map((p) =>
             p.habitId === habitId
-              ? { ...p, isCompleted: willComplete, status: willComplete ? 'completed' as const : (p.status === 'rest' ? 'rest' as const : 'active' as const) }
+              ? { ...p, isCompleted: willComplete, isSkipped: false, status: willComplete ? 'completed' as const : (p.status === 'rest' ? 'rest' as const : 'active' as const) }
               : p
           );
           return updated.sort(sortByStatus);
         });
       }, 400);
     },
-    [checkIn, uncheckIn, todayItems],
+    [checkIn, uncheckIn, unskipHabit, todayItems],
+  );
+
+  const handleSkip = useCallback(
+    (habitId: string) => {
+      const item = todayItems.find((h) => h.habitId === habitId);
+      const willSkip = !item?.isSkipped;
+
+      pendingMoveRef.current = true;
+
+      if (willSkip) {
+        skipHabit(habitId);
+      } else {
+        unskipHabit(habitId);
+      }
+
+      if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
+      moveTimerRef.current = setTimeout(() => {
+        pendingMoveRef.current = false;
+        setDisplayItems((prev) => {
+          const updated = prev.map((p) =>
+            p.habitId === habitId
+              ? { ...p, isSkipped: willSkip, isCompleted: false, status: willSkip ? 'skipped' as const : 'active' as const }
+              : p
+          );
+          return updated.sort(sortByStatus);
+        });
+      }, 400);
+    },
+    [skipHabit, unskipHabit, todayItems],
   );
 
   const handleDelete = useCallback(
@@ -163,6 +213,7 @@ export function TodayScreen() {
             item={item}
             index={index}
             onCheckIn={handleCheckIn}
+            onSkip={handleSkip}
             onDelete={handleDelete}
             onEdit={handleEdit}
             isJiggling={isJiggling}
@@ -179,7 +230,7 @@ export function TodayScreen() {
         </ScaleDecorator>
       );
     },
-    [handleCheckIn, handleDelete, handleEdit, isJiggling],
+    [handleCheckIn, handleSkip, handleDelete, handleEdit, isJiggling],
   );
 
   const handleDragEnd = useCallback(
@@ -252,6 +303,26 @@ export function TodayScreen() {
         </View>
       </View>
 
+      {habits.length === 0 ? (
+        <View className="flex-1 items-center justify-center px-8">
+          <Ionicons name="leaf-outline" size={64} color={colorScheme === 'dark' ? '#555' : '#C0C0C0'} style={{ marginBottom: 16 }} />
+          <Text className="text-xl font-bold text-foreground dark:text-foreground-dark text-center mb-2">
+            {t.emptyStateTitle}
+          </Text>
+          <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark text-center leading-5 mb-8">
+            {t.emptyStateSubtitle}
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AddHabit')}
+            activeOpacity={0.7}
+            className="px-6 h-12 rounded-full bg-foreground dark:bg-foreground-dark justify-center items-center"
+          >
+            <Text className="text-[15px] font-semibold text-background dark:text-background-dark">
+              {t.createFirstHabit}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
       <View style={{ flex: 1 }}>
         {/* Normal mode: ScrollView always mounted to avoid flash */}
         <ScrollView
@@ -269,6 +340,7 @@ export function TodayScreen() {
                 item={item}
                 index={index}
                 onCheckIn={handleCheckIn}
+                onSkip={handleSkip}
                 onDelete={handleDelete}
                 onEdit={handleEdit}
                 isJiggling={false}
@@ -309,6 +381,7 @@ export function TodayScreen() {
           />
         </View>
       </View>
+      )}
     </SafeAreaView>
   );
 }

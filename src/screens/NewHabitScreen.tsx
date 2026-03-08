@@ -16,6 +16,7 @@ import {
   scheduleHabitReminders,
   cancelHabitReminders,
 } from '../services/notifications';
+import { generateId } from '../services/database';
 import type { FrequencyConfig, HabitCategory } from '@types/habit';
 import { HABIT_CATEGORIES, getCategoryColor } from '../types/habit';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -214,7 +215,7 @@ export function NewHabitScreen() {
 
     const habitId = isEditing && preset.editHabitId
       ? preset.editHabitId
-      : Date.now().toString();
+      : generateId();
 
     if (isEditing && preset.editHabitId) {
       updateHabit(preset.editHabitId, {

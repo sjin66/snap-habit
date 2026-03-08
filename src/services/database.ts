@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import * as Crypto from 'expo-crypto';
 import type { Habit, HabitEntry, FrequencyConfig } from '@types/habit';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -9,6 +10,11 @@ export function getDatabase(): SQLite.SQLiteDatabase {
     db = SQLite.openDatabaseSync('snaphabit.db');
   }
   return db;
+}
+
+/** 生成 UUID */
+export function generateId(): string {
+  return Crypto.randomUUID();
 }
 
 /** 初始化表结构 */
@@ -52,42 +58,71 @@ export function initDatabase(): void {
     CREATE INDEX IF NOT EXISTS idx_entries_date ON entries(date);
   `);
 
-  // ─── Migrations: add columns that may be missing from older schemas ───
-  const columns = database.getAllSync<{ name: string }>(
-    `PRAGMA table_info(habits)`
-  );
-  const colNames = columns.map((c) => c.name);
+  // ─── Schema version tracking ───
+  database.execSync(`
+    CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
+  `);
+  const versionRow = database.getFirstSync<{ version: number }>('SELECT version FROM schema_version');
+  let currentVersion = versionRow?.version ?? 0;
+  if (!versionRow) {
+    database.runSync('INSERT INTO schema_version (version) VALUES (?)', 0);
+  }
 
-  if (!colNames.includes('note')) {
-    database.execSync(`ALTER TABLE habits ADD COLUMN note TEXT`);
-  }
-  if (!colNames.includes('daily_target')) {
-    database.execSync(`ALTER TABLE habits ADD COLUMN daily_target INTEGER NOT NULL DEFAULT 1`);
-  }
-  if (!colNames.includes('reminder_time')) {
-    database.execSync(`ALTER TABLE habits ADD COLUMN reminder_time TEXT`);
-  }
-  if (!colNames.includes('unit')) {
-    database.execSync(`ALTER TABLE habits ADD COLUMN unit TEXT NOT NULL DEFAULT 'times'`);
-  }
-  if (!colNames.includes('sort_order')) {
-    database.execSync(`ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`);
-    // Backfill: assign sort_order based on current created_at order
-    database.execSync(`
-      UPDATE habits SET sort_order = (
-        SELECT COUNT(*) FROM habits AS h2 WHERE h2.created_at < habits.created_at
-      )
-    `);
-  }
-  if (!colNames.includes('category')) {
-    database.execSync(`ALTER TABLE habits ADD COLUMN category TEXT`);
+  // ─── Migrations (by version) ───
+  const migrations: (() => void)[] = [
+    // v1: add columns that may be missing from the initial schema
+    () => {
+      const columns = database.getAllSync<{ name: string }>(`PRAGMA table_info(habits)`);
+      const colNames = columns.map((c) => c.name);
+      if (!colNames.includes('note')) database.execSync(`ALTER TABLE habits ADD COLUMN note TEXT`);
+      if (!colNames.includes('daily_target')) database.execSync(`ALTER TABLE habits ADD COLUMN daily_target INTEGER NOT NULL DEFAULT 1`);
+      if (!colNames.includes('reminder_time')) database.execSync(`ALTER TABLE habits ADD COLUMN reminder_time TEXT`);
+      if (!colNames.includes('unit')) database.execSync(`ALTER TABLE habits ADD COLUMN unit TEXT NOT NULL DEFAULT 'times'`);
+      if (!colNames.includes('sort_order')) {
+        database.execSync(`ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`);
+        database.execSync(`UPDATE habits SET sort_order = (SELECT COUNT(*) FROM habits AS h2 WHERE h2.created_at < habits.created_at)`);
+      }
+      if (!colNames.includes('category')) database.execSync(`ALTER TABLE habits ADD COLUMN category TEXT`);
+      if (!colNames.includes('deleted_at')) database.execSync(`ALTER TABLE habits ADD COLUMN deleted_at TEXT`);
+
+      const entryCols = database.getAllSync<{ name: string }>(`PRAGMA table_info(entries)`);
+      const entryColNames = entryCols.map((c) => c.name);
+      if (!entryColNames.includes('status')) database.execSync(`ALTER TABLE entries ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'`);
+    },
+    // v2: unique constraint on entries(habit_id, date) to prevent duplicates
+    () => {
+      database.execSync(`CREATE UNIQUE INDEX IF NOT EXISTS idx_entries_unique_habit_date ON entries(habit_id, date)`);
+    },
+  ];
+
+  // Run pending migrations inside a transaction
+  for (let v = currentVersion; v < migrations.length; v++) {
+    database.execSync('BEGIN TRANSACTION');
+    try {
+      migrations[v]();
+      database.runSync('UPDATE schema_version SET version = ?', v + 1);
+      database.execSync('COMMIT');
+    } catch (e) {
+      database.execSync('ROLLBACK');
+      console.error(`Migration v${v + 1} failed:`, e);
+      throw e;
+    }
   }
 }
 
 // ─── Habits CRUD ────────────────────────────────────────
 
-/** 读取所有未归档习惯 */
+/** 读取所有未归档且未删除的习惯 */
 export function getAllHabits(): Habit[] {
+  const database = getDatabase();
+  const rows = database.getAllSync<any>(
+    'SELECT * FROM habits WHERE archived_at IS NULL AND deleted_at IS NULL ORDER BY sort_order ASC, created_at ASC'
+  );
+  return rows.map(rowToHabit);
+}
+
+/** 读取所有习惯（含已删除），用于历史统计 */
+export function getAllHabitsForStats(): Habit[] {
   const database = getDatabase();
   const rows = database.getAllSync<any>(
     'SELECT * FROM habits WHERE archived_at IS NULL ORDER BY sort_order ASC, created_at ASC'
@@ -148,33 +183,45 @@ export function updateHabitInDB(id: string, updates: Partial<Habit>): void {
   database.runSync(`UPDATE habits SET ${fields.join(', ')} WHERE id = ?`, ...values);
 }
 
-/** 删除习惯（同时删除打卡记录） */
+/** 软删除习惯（保留打卡记录用于统计） */
 export function deleteHabitFromDB(id: string): void {
   const database = getDatabase();
-  database.runSync('DELETE FROM entries WHERE habit_id = ?', id);
-  database.runSync('DELETE FROM habits WHERE id = ?', id);
+  database.runSync(
+    'UPDATE habits SET deleted_at = ? WHERE id = ?',
+    new Date().toISOString(),
+    id,
+  );
 }
 
-/** 批量更新排序 */
+/** 批量更新排序（事务保护） */
 export function updateHabitSortOrders(orderedIds: string[]): void {
   const database = getDatabase();
-  for (let i = 0; i < orderedIds.length; i++) {
-    database.runSync('UPDATE habits SET sort_order = ? WHERE id = ?', i, orderedIds[i]);
+  database.execSync('BEGIN TRANSACTION');
+  try {
+    for (let i = 0; i < orderedIds.length; i++) {
+      database.runSync('UPDATE habits SET sort_order = ? WHERE id = ?', i, orderedIds[i]);
+    }
+    database.execSync('COMMIT');
+  } catch (e) {
+    database.execSync('ROLLBACK');
+    console.error('updateHabitSortOrders failed:', e);
+    throw e;
   }
 }
 
 // ─── Entries CRUD ───────────────────────────────────────
 
-/** 插入打卡记录 */
+/** 插入打卡记录（UNIQUE 约束自动防重复） */
 export function insertEntry(entry: HabitEntry): void {
   const database = getDatabase();
   database.runSync(
-    'INSERT INTO entries (id, habit_id, date, completed_at, note) VALUES (?, ?, ?, ?, ?)',
+    'INSERT OR REPLACE INTO entries (id, habit_id, date, completed_at, note, status) VALUES (?, ?, ?, ?, ?, ?)',
     entry.id,
     entry.habitId,
     entry.date,
     entry.completedAt,
     entry.note ?? null,
+    entry.status ?? 'completed',
   );
 }
 
@@ -248,13 +295,20 @@ function parseReminders(raw: string | null | undefined): string[] | undefined {
 }
 
 function rowToHabit(row: any): Habit {
-  const frequency: FrequencyConfig = {
-    type: row.frequency_type,
-    daysOfWeek: row.frequency_days_of_week
-      ? JSON.parse(row.frequency_days_of_week)
-      : undefined,
-    timesPerWeek: row.frequency_times_per_week ?? undefined,
-  };
+  let frequency: FrequencyConfig;
+  try {
+    frequency = {
+      type: row.frequency_type,
+      daysOfWeek: row.frequency_days_of_week
+        ? JSON.parse(row.frequency_days_of_week)
+        : undefined,
+      timesPerWeek: row.frequency_times_per_week ?? undefined,
+    };
+  } catch {
+    // Fallback if JSON is corrupted
+    frequency = { type: row.frequency_type || 'daily' };
+    console.warn(`Corrupted frequency data for habit ${row.id}`);
+  }
 
   return {
     id: row.id,
@@ -269,6 +323,7 @@ function rowToHabit(row: any): Habit {
     reminders: parseReminders(row.reminder_time),
     createdAt: row.created_at,
     archivedAt: row.archived_at ?? undefined,
+    deletedAt: row.deleted_at ?? undefined,
   };
 }
 
@@ -279,5 +334,6 @@ function rowToEntry(row: any): HabitEntry {
     date: row.date,
     completedAt: row.completed_at,
     note: row.note ?? undefined,
+    status: (row.status as 'completed' | 'skipped') ?? 'completed',
   };
 }

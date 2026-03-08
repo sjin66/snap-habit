@@ -10,7 +10,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useHabitStore, isRestDay } from '../stores/habitStore';
-import { getEntriesInRange, getEntriesByHabitAndRange } from '../services/database';
+import { getEntriesInRange, getEntriesByHabitAndRange, getAllHabitsForStats } from '../services/database';
 import { useI18n } from '../i18n';
 
 // ─── Helpers ───────────────────────────────────────────
@@ -73,6 +73,9 @@ export function StatsScreen() {
   const { t } = useI18n();
   const { width: screenWidth } = useWindowDimensions();
 
+  // For stats calculations, include deleted habits so historical data is preserved
+  const allHabits = useMemo(() => getAllHabitsForStats(), [habits]);
+
   // Cell size for GitHub-style grid
   const gridInnerWidth = screenWidth - 40 - 32 - 22 - CELL_GAP;
   const cellSize = Math.floor(
@@ -92,98 +95,137 @@ export function StatsScreen() {
     const { start: weekStart, end: weekEnd } = getWeekRange();
     const fourteenDaysAgo = formatDate(daysAgo(13));
 
+    // Helper: for a deleted habit, cap effective end date at its deletion date
+    const effectiveEnd = (h: { deletedAt?: string }, endDate: string) => {
+      if (h.deletedAt) {
+        const d = h.deletedAt.split('T')[0];
+        return d < endDate ? d : endDate;
+      }
+      return endDate;
+    };
+
     // All entries this week
     const weekEntries = getEntriesInRange(weekStart, weekEnd);
     // All entries last 14 days
     const recentEntries = getEntriesInRange(fourteenDaysAgo, today);
 
+    // Filter out skipped entries for completion counting
+    const weekCompletedEntries = weekEntries.filter((e) => e.status !== 'skipped');
+    const recentCompletedEntries = recentEntries.filter((e) => e.status !== 'skipped');
+
+    // Skipped entries for excluding from expected days
+    const weekSkippedEntries = weekEntries.filter((e) => e.status === 'skipped');
+    const recentSkippedEntries = recentEntries.filter((e) => e.status === 'skipped');
+
     // ── Weekly completion ──
     const now = new Date();
     const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay(); // Mon=1..Sun=7
-    // Per-habit: count active days since max(weekStart, createdAt) to today (excluding rest days)
-    const totalPossible = habits.reduce((sum, h) => {
+    // Per-habit: count active days since max(weekStart, createdAt) to min(today, deletedAt) (excluding rest days)
+    const totalPossible = allHabits.reduce((sum, h) => {
       const createdDate = (h.createdAt || '').split('T')[0];
-      const effectiveStart = createdDate > weekStart ? createdDate : weekStart;
-      if (effectiveStart > today) return sum; // created in the future, skip
+      const habitStart = createdDate > weekStart ? createdDate : weekStart;
+      const habitEnd = effectiveEnd(h, today);
+      if (habitStart > habitEnd) return sum;
       const msPerDay = 86400000;
       const days = Math.floor(
-        (new Date(today + 'T00:00:00').getTime() - new Date(effectiveStart + 'T00:00:00').getTime()) / msPerDay
+        (new Date(habitEnd + 'T00:00:00').getTime() - new Date(habitStart + 'T00:00:00').getTime()) / msPerDay
       ) + 1;
-      // Exclude rest days
       let activeDays = 0;
       for (let i = 0; i < days; i++) {
-        const d = new Date(new Date(effectiveStart + 'T00:00:00').getTime() + i * msPerDay);
+        const d = new Date(new Date(habitStart + 'T00:00:00').getTime() + i * msPerDay);
         if (!isRestDay(h.frequency, d)) activeDays++;
       }
       return sum + activeDays;
     }, 0);
-    // Unique (habitId, date) combos this week
-    const weekCompletions = new Set(weekEntries.map((e) => `${e.habitId}_${e.date}`)).size;
-    const weekPercent = totalPossible > 0 ? Math.round((weekCompletions / totalPossible) * 100) : 0;
+    // Unique (habitId, date) combos this week (only completed, not skipped)
+    const weekCompletions = new Set(weekCompletedEntries.map((e) => `${e.habitId}_${e.date}`)).size;
+    // Subtract skipped habit-days from total possible
+    const weekSkippedDays = new Set(weekSkippedEntries.map((e) => `${e.habitId}_${e.date}`)).size;
+    const weekPercent = (totalPossible - weekSkippedDays) > 0 ? Math.round((weekCompletions / (totalPossible - weekSkippedDays)) * 100) : 0;
 
     // ── Completion rate (14 days, excluding rest days) ──
-    const totalPossible14 = habits.reduce((sum, h) => {
+    const totalPossible14 = allHabits.reduce((sum, h) => {
       const createdDate = (h.createdAt || '').split('T')[0];
-      const effectiveStart = createdDate > fourteenDaysAgo ? createdDate : fourteenDaysAgo;
-      if (effectiveStart > today) return sum;
+      const habitStart = createdDate > fourteenDaysAgo ? createdDate : fourteenDaysAgo;
+      const habitEnd = effectiveEnd(h, today);
+      if (habitStart > habitEnd) return sum;
       const msPerDay = 86400000;
       const days = Math.floor(
-        (new Date(today + 'T00:00:00').getTime() - new Date(effectiveStart + 'T00:00:00').getTime()) / msPerDay
+        (new Date(habitEnd + 'T00:00:00').getTime() - new Date(habitStart + 'T00:00:00').getTime()) / msPerDay
       ) + 1;
       let activeDays = 0;
       for (let i = 0; i < days; i++) {
-        const d = new Date(new Date(effectiveStart + 'T00:00:00').getTime() + i * msPerDay);
+        const d = new Date(new Date(habitStart + 'T00:00:00').getTime() + i * msPerDay);
         if (!isRestDay(h.frequency, d)) activeDays++;
       }
       return sum + activeDays;
     }, 0);
-    const completions14 = new Set(recentEntries.map((e) => `${e.habitId}_${e.date}`)).size;
-    const completionRate = totalPossible14 > 0 ? Math.round((completions14 / totalPossible14) * 100) : 0;
+    const completions14 = new Set(recentCompletedEntries.map((e) => `${e.habitId}_${e.date}`)).size;
+    const skipped14 = new Set(recentSkippedEntries.map((e) => `${e.habitId}_${e.date}`)).size;
+    const completionRate = (totalPossible14 - skipped14) > 0 ? Math.round((completions14 / (totalPossible14 - skipped14)) * 100) : 0;
 
     // ── Week-over-week change ──
     const prevWeekStart = formatDate(daysAgo(dayOfWeek + 6));
     const prevWeekEnd = formatDate(daysAgo(dayOfWeek));
     const prevWeekEntries = getEntriesInRange(prevWeekStart, prevWeekEnd);
-    const prevWeekCompletions = new Set(prevWeekEntries.map((e) => `${e.habitId}_${e.date}`)).size;
+    const prevWeekCompletions = new Set(prevWeekEntries.filter((e) => e.status !== 'skipped').map((e) => `${e.habitId}_${e.date}`)).size;
+    const prevWeekSkipped = new Set(prevWeekEntries.filter((e) => e.status === 'skipped').map((e) => `${e.habitId}_${e.date}`)).size;
     // Exclude rest days from prev week total
-    const prevTotalPossible = habits.reduce((sum, h) => {
+    const prevTotalPossible = allHabits.reduce((sum, h) => {
+      const habitEnd = effectiveEnd(h, prevWeekEnd);
+      if (prevWeekStart > habitEnd) return sum;
+      const actualStart = (() => { const c = (h.createdAt || '').split('T')[0]; return c > prevWeekStart ? c : prevWeekStart; })();
       const msPerDay = 86400000;
+      const days = Math.floor(
+        (new Date(habitEnd + 'T00:00:00').getTime() - new Date(actualStart + 'T00:00:00').getTime()) / msPerDay
+      ) + 1;
       let activeDays = 0;
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(new Date(prevWeekStart + 'T00:00:00').getTime() + i * msPerDay);
+      for (let i = 0; i < days; i++) {
+        const d = new Date(new Date(actualStart + 'T00:00:00').getTime() + i * msPerDay);
         if (!isRestDay(h.frequency, d)) activeDays++;
       }
       return sum + activeDays;
     }, 0);
-    const prevPercent = prevTotalPossible > 0 ? Math.round((prevWeekCompletions / prevTotalPossible) * 100) : 0;
+    const prevPercent = (prevTotalPossible - prevWeekSkipped) > 0 ? Math.round((prevWeekCompletions / (prevTotalPossible - prevWeekSkipped)) * 100) : 0;
     const weekChange = completionRate - prevPercent;
 
-    // ── Streaks ──
+    // ── Streaks (batch query: one query for all entries in 365 days) ──
     let longestStreak = 0;
     let currentStreak = 0;
 
     if (habits.length > 0) {
-      // Current streak: consecutive days where all active habits were completed (skip rest days)
+      const streakRangeStart = formatDate(daysAgo(364));
+      const streakEntries = getEntriesInRange(streakRangeStart, today);
+      // Build a Map<date, HabitEntry[]> for O(1) lookups
+      const streakEntryMap = new Map<string, typeof streakEntries>();
+      for (const e of streakEntries) {
+        const list = streakEntryMap.get(e.date) || [];
+        list.push(e);
+        streakEntryMap.set(e.date, list);
+      }
+
+      // Current streak
       let day = new Date();
       let streak = 0;
       for (let i = 0; i < 365; i++) {
         const dateStr = formatDate(day);
-        // Get habits that are active (not resting) on this day
         const activeHabits = habits.filter((h) => !isRestDay(h.frequency, new Date(day)));
         if (activeHabits.length === 0) {
-          // All habits are resting — skip this day
           day.setDate(day.getDate() - 1);
           continue;
         }
-        const dayEntries = getEntriesInRange(dateStr, dateStr);
-        const completedHabits = new Set(dayEntries.map((e) => e.habitId));
-        const allDone = activeHabits.every((h) => completedHabits.has(h.id));
-        if (allDone) {
+        const dayEntries = streakEntryMap.get(dateStr) || [];
+        const completedHabits = new Set(dayEntries.filter((e) => e.status !== 'skipped').map((e) => e.habitId));
+        const skippedHabits = new Set(dayEntries.filter((e) => e.status === 'skipped').map((e) => e.habitId));
+        const allDone = activeHabits.every((h) => completedHabits.has(h.id) || skippedHabits.has(h.id));
+        if (allDone && completedHabits.size > 0) {
           streak++;
+        } else if (allDone && completedHabits.size === 0) {
+          day.setDate(day.getDate() - 1);
+          continue;
         } else if (i > 0) {
-          break; // streak broken
+          break;
         } else {
-          // today not done yet, check from yesterday
           day.setDate(day.getDate() - 1);
           continue;
         }
@@ -191,20 +233,23 @@ export function StatsScreen() {
       }
       currentStreak = streak;
 
-      // Longest streak (scan 90 days, skip rest days)
+      // Longest streak (scan 90 days, reuse streakEntryMap)
       let best = 0;
       let run = 0;
       for (let i = 89; i >= 0; i--) {
         const d = daysAgo(i);
         const dateStr = formatDate(d);
         const activeHabits = habits.filter((h) => !isRestDay(h.frequency, d));
-        if (activeHabits.length === 0) continue; // skip full-rest days
-        const dayEntries = getEntriesInRange(dateStr, dateStr);
-        const completedHabits = new Set(dayEntries.map((e) => e.habitId));
-        const allDone = activeHabits.every((h) => completedHabits.has(h.id));
-        if (allDone) {
+        if (activeHabits.length === 0) continue;
+        const dayEntries = streakEntryMap.get(dateStr) || [];
+        const completedHabits = new Set(dayEntries.filter((e) => e.status !== 'skipped').map((e) => e.habitId));
+        const skippedHabits = new Set(dayEntries.filter((e) => e.status === 'skipped').map((e) => e.habitId));
+        const allDone = activeHabits.every((h) => completedHabits.has(h.id) || skippedHabits.has(h.id));
+        if (allDone && completedHabits.size > 0) {
           run++;
           best = Math.max(best, run);
+        } else if (allDone && completedHabits.size === 0) {
+          continue;
         } else {
           run = 0;
         }
@@ -234,10 +279,14 @@ export function StatsScreen() {
         if (isFuture) {
           week.push({ date: dateStr, ratio: 0, empty: true });
         } else {
-          // Only count active (non-resting) habits for this day
-          const activeHabits = habits.filter((h) => !isRestDay(h.frequency, dayDate));
+          // Only count habits active (non-resting, non-deleted) on this day
+          const activeHabits = allHabits.filter((h) => {
+            if (isRestDay(h.frequency, dayDate)) return false;
+            if (h.deletedAt && dateStr > h.deletedAt.split('T')[0]) return false;
+            return true;
+          });
           const dayCompletions = new Set(
-            gridEntries.filter((e) => e.date === dateStr).map((e) => e.habitId)
+            gridEntries.filter((e) => e.date === dateStr && e.status !== 'skipped').map((e) => e.habitId)
           ).size;
           const ratio = activeHabits.length > 0 ? dayCompletions / activeHabits.length : 0;
           week.push({ date: dateStr, ratio, empty: false });
@@ -265,7 +314,8 @@ export function StatsScreen() {
       const createdDate = h.createdAt.split('T')[0];
       const startDate = createdDate > fourWeeksAgo ? createdDate : fourWeeksAgo;
       const entries = getEntriesByHabitAndRange(h.id, startDate, today);
-      const completedDays = new Set(entries.map((e) => e.date)).size;
+      const completedDays = new Set(entries.filter((e) => e.status !== 'skipped').map((e) => e.date)).size;
+      const skippedDays = new Set(entries.filter((e) => e.status === 'skipped').map((e) => e.date)).size;
       // Days since start (inclusive), excluding rest days
       const msPerDay = 86400000;
       const totalDays = Math.max(1, Math.floor(
@@ -276,7 +326,7 @@ export function StatsScreen() {
         const d = new Date(new Date(startDate + 'T00:00:00').getTime() + i * msPerDay);
         if (!isRestDay(h.frequency, d)) activeDays++;
       }
-      const expectedDays = Math.max(1, activeDays);
+      const expectedDays = Math.max(1, activeDays - skippedDays);
       const rate = Math.round((completedDays / expectedDays) * 100);
       return { id: h.id, name: h.name, icon: h.icon, color: h.color, rate, completedDays, expectedDays };
     });
@@ -291,7 +341,7 @@ export function StatsScreen() {
       monthLabels,
       habitPerformance,
     };
-  }, [habits, todayEntries, t]);
+  }, [habits, allHabits, todayEntries, t]);
 
   const encouragement =
     stats.weekPercent >= 80

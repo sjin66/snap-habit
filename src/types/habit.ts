@@ -42,6 +42,7 @@ export interface Habit {
   reminders?: string[];   // ["HH:mm", ...] multiple reminder times
   createdAt: string;      // ISO date
   archivedAt?: string;
+  deletedAt?: string;      // 软删除时间
 }
 
 export interface FrequencyConfig {
@@ -57,6 +58,7 @@ export interface HabitEntry {
   date: string;           // "YYYY-MM-DD"
   completedAt: string;    // ISO datetime
   note?: string;
+  status?: 'completed' | 'skipped';  // default: 'completed'
 }
 
 // 今日快照（供 Widget / Watch 读取）
@@ -66,7 +68,7 @@ export interface TodaySnapshot {
   updatedAt: string;
 }
 
-export type HabitDayStatus = 'active' | 'completed' | 'rest';
+export type HabitDayStatus = 'active' | 'completed' | 'skipped' | 'rest';
 
 export interface TodayHabitItem {
   habitId: string;
@@ -77,6 +79,7 @@ export interface TodayHabitItem {
   dailyTarget: number;
   unit: string;
   isCompleted: boolean;
+  isSkipped: boolean;
   completedAt?: string;
   streak: number;
   status: HabitDayStatus;

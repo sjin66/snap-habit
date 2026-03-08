@@ -9,6 +9,9 @@ export default {
 
   // ── TodayScreen ──
   today: '今天',
+  emptyStateTitle: '还没有习惯',
+  emptyStateSubtitle: '从今天开始养成好习惯吧！\n点击下方按钮创建你的第一个习惯。',
+  createFirstHabit: '创建第一个习惯',
   dayNames: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
   monthNames: [
     '一月', '二月', '三月', '四月', '五月', '六月',
@@ -105,11 +108,16 @@ export default {
   last30Days: '近 30 天',
   weekdayHeaders: ['一', '二', '三', '四', '五', '六', '日'],
   successPercent: '% 完成率',
+  legendDone: '已完成',
+  legendMissed: '未完成',
+  legendRest: '休息',
+  legendSkipped: '已跳过',
 
   // ── HabitCard ──
   deleteHabit: '删除习惯',
   deleteHabitConfirm: (name: string) => `确定要删除"${name}"吗？`,
   restDay: '休息日',
+  skippedDay: '已跳过',
   streakDaySuffix: '天',
 
   // ── ProgressCard ──
@@ -155,4 +163,8 @@ export default {
   language: '语言',
   english: 'English',
   chinese: '中文',
+  notifications: '通知',
+  notificationsDesc: '接收习惯提醒',
+  notificationsEnabled: '通知已开启',
+  notificationsDisabledMsg: '所有提醒已取消',
 } as const;

@@ -32,6 +32,7 @@ function RightActions({
   btnWidth,
   cardHeight,
   onEdit,
+  onSkip,
   onDelete,
 }: {
   progress: SharedValue<number>;
@@ -40,6 +41,7 @@ function RightActions({
   btnWidth: number;
   cardHeight: number;
   onEdit: () => void;
+  onSkip: () => void;
   onDelete: () => void;
 }) {
   const containerStyle = useAnimatedStyle(() => ({
@@ -47,6 +49,9 @@ function RightActions({
   }));
   const editStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(dragX.value, [-totalWidth, -40, 0], [1, 0.9, 0.85], Extrapolation.CLAMP) }],
+  }));
+  const skipStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(dragX.value, [-totalWidth, -50, 0], [1, 0.91, 0.85], Extrapolation.CLAMP) }],
   }));
   const deleteStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(dragX.value, [-totalWidth, -60, 0], [1, 0.92, 0.85], Extrapolation.CLAMP) }],
@@ -65,6 +70,19 @@ function RightActions({
           }}
         >
           <Ionicons name="create" size={26} color="#3B82F6" />
+        </TouchableOpacity>
+      </ReAnimated.View>
+      <ReAnimated.View style={skipStyle}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={onSkip}
+          style={{
+            width: btnWidth, height: cardHeight,
+            backgroundColor: '#F59E0B15', borderWidth: 1, borderColor: '#F59E0B30',
+            borderRadius: 12, justifyContent: 'center', alignItems: 'center',
+          }}
+        >
+          <Ionicons name="play-skip-forward" size={26} color="#F59E0B" />
         </TouchableOpacity>
       </ReAnimated.View>
       <ReAnimated.View style={deleteStyle}>
@@ -88,6 +106,7 @@ interface Props {
   item: TodayHabitItem;
   index: number;
   onCheckIn: (habitId: string) => void;
+  onSkip?: (habitId: string) => void;
   onDelete?: (habitId: string) => void;
   onEdit?: (habitId: string) => void;
   isJiggling?: boolean;
@@ -96,7 +115,7 @@ interface Props {
   isDragging?: boolean;
 }
 
-export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling, onLongPress, onDrag, isDragging }: Props) {
+export function HabitCard({ item, index, onCheckIn, onSkip, onDelete, onEdit, isJiggling, onLongPress, onDrag, isDragging }: Props) {
   const scale = React.useRef(new Animated.Value(1)).current;
   const swipeableRef = useRef<SwipeableMethods>(null);
   const navigation = useNavigation<any>();
@@ -120,6 +139,7 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
   const bgColor = isDark ? '#111111' : '#FFFFFF';
   const mutedColor = isDark ? '#B4B4B4' : '#8E8E8E';
   const isRest = item.status === 'rest' && !item.isCompleted;
+  const isSkipped = item.status === 'skipped';
   const [cardHeight, setCardHeight] = useState(60);
   const btnWidth = Math.round(cardHeight * 0.6);
 
@@ -187,7 +207,7 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
     onCheckIn(item.habitId);
   }, [item.habitId, onCheckIn, scale]);
 
-  const totalWidth = 12 + btnWidth + 12 + btnWidth;
+  const totalWidth = 12 + btnWidth + 12 + btnWidth + 12 + btnWidth;
 
   const renderRightActions = useCallback(
     (progress: SharedValue<number>, dragX: SharedValue<number>) => (
@@ -201,13 +221,17 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
           swipeableRef.current?.close();
           onEdit?.(item.habitId);
         }}
+        onSkip={() => {
+          swipeableRef.current?.close();
+          onSkip?.(item.habitId);
+        }}
         onDelete={() => {
           swipeableRef.current?.close();
           triggerDelete();
         }}
       />
     ),
-    [item.habitId, triggerDelete, onEdit, cardHeight, totalWidth, btnWidth],
+    [item.habitId, triggerDelete, onEdit, onSkip, cardHeight, totalWidth, btnWidth],
   );
 
   return (
@@ -259,10 +283,14 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
       onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}
       style={{
         transform: [{ scale }],
-        backgroundColor: isRest
+        backgroundColor: isSkipped
+          ? (isDark ? '#1A1A1A' : '#F0F0F0')
+          : isRest
           ? (isDark ? '#1A1A1A' : '#F0F0F0')
           : item.color + (item.isCompleted ? '20' : '15'),
-        borderColor: isRest
+        borderColor: isSkipped
+          ? (isDark ? '#F59E0B40' : '#DB6700')
+          : isRest
           ? (isDark ? '#2D2D2D' : '#E0E0E0')
           : item.color + '30',
         opacity: isRest ? 0.7 : 1,
@@ -271,19 +299,21 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
       {/* Icon */}
       <View
         className="w-[52px] h-[52px] rounded-[14px] justify-center items-center mr-3.5"
-        style={{ backgroundColor: isRest
+        style={{ backgroundColor: isSkipped
+          ? (isDark ? '#2A2A2A' : '#94A3B830')
+          : isRest
           ? (isDark ? '#2A2A2A' : '#E0E0E0')
           : item.color + (item.isCompleted ? '33' : '15') }}
       >
-        <Ionicons name={item.icon as any} size={24} color={isRest ? mutedColor : item.color} />
+        <Ionicons name={item.icon as any} size={24} color={isSkipped ? (isDark ? '#F59E0B' : '#DB6700') : isRest ? mutedColor : item.color} />
       </View>
 
       {/* Info */}
       <View className="flex-1">
-        {isRest ? (
+        {isRest || isSkipped ? (
           <Text
             className="text-base font-semibold mb-1"
-            style={{ color: mutedColor }}
+            style={{ color: isSkipped ? (isDark ? '#F59E0B' : '#DB6700') : mutedColor }}
           >
             {item.name}
           </Text>
@@ -314,7 +344,11 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
           </View>
         )}
         <View className="flex-row items-center">
-          {isRest ? (
+          {isSkipped ? (
+            <Text style={{ fontSize: 13, color: isDark ? '#F59E0B' : '#DB6700' }}>
+              {t.skippedDay}
+            </Text>
+          ) : isRest ? (
             <Text style={{ fontSize: 13, color: mutedColor }}>
               {t.restDay}
             </Text>
@@ -340,8 +374,17 @@ export function HabitCard({ item, index, onCheckIn, onDelete, onEdit, isJiggling
         </View>
       </View>
 
-      {/* Check button / Rest indicator */}
-      {isRest ? (
+      {/* Check button / Rest / Skip indicator */}
+      {isSkipped ? (
+        <TouchableOpacity
+          onPress={handlePress}
+          activeOpacity={0.7}
+          className="w-[46px] h-[46px] rounded-full justify-center items-center"
+          style={{ backgroundColor: isDark ? '#F59E0B25' : '#DB670020' }}
+        >
+          <Ionicons name="play-skip-forward" size={20} color={isDark ? '#F59E0B' : '#DB6700'} />
+        </TouchableOpacity>
+      ) : isRest ? (
         <TouchableOpacity
           onPress={handlePress}
           activeOpacity={0.7}

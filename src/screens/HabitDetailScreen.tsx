@@ -42,7 +42,7 @@ function daysAgo(n: number): Date {
 type CalendarDay = {
   date: string;
   day: number;
-  status: 'done' | 'missed' | 'future' | 'before' | 'rest';
+  status: 'done' | 'missed' | 'future' | 'before' | 'rest' | 'skipped';
   isToday: boolean;
 };
 
@@ -73,7 +73,8 @@ function buildMonthCalendar(
   const monthStart = formatDate(firstDay);
   const monthEnd = formatDate(new Date(year, month, daysInMonth));
   const entries = getEntriesByHabitAndRange(habitId, monthStart, monthEnd);
-  const completedDates = new Set(entries.map((e) => e.date));
+  const completedDates = new Set(entries.filter((e) => e.status !== 'skipped').map((e) => e.date));
+  const skippedDates = new Set(entries.filter((e) => e.status === 'skipped').map((e) => e.date));
 
   const days: (CalendarDay | null)[] = [];
 
@@ -101,6 +102,9 @@ function buildMonthCalendar(
       status = 'done';
       doneCount++;
       expectedCount++;
+    } else if (skippedDates.has(dateStr)) {
+      status = 'skipped';
+      // Skipped days don't count toward expected or done
     } else if (rest) {
       status = 'rest';
       // Rest days don't count toward expected or missed
@@ -214,21 +218,34 @@ export function HabitDetailScreen() {
   );
 
   const streak = useMemo(() => {
-    // Count consecutive days completed going backward from today (skip rest days)
+    // Batch query: fetch all entries for this habit in one go
+    const streakStartDate = new Date();
+    streakStartDate.setDate(streakStartDate.getDate() - 365);
+    const allEntries = getEntriesByHabitAndRange(habitId, formatDate(streakStartDate), formatDate(new Date()));
+    const entryByDate = new Map<string, typeof allEntries>();
+    for (const e of allEntries) {
+      const list = entryByDate.get(e.date) || [];
+      list.push(e);
+      entryByDate.set(e.date, list);
+    }
+
     let count = 0;
     const d = new Date();
     for (let i = 0; i < 365; i++) {
       const dateStr = formatDate(d);
-      // Skip rest days — they don't break or count toward streak
       if (habit?.frequency && isRestDay(habit.frequency, new Date(d))) {
         d.setDate(d.getDate() - 1);
         continue;
       }
-      const entries = getEntriesByHabitAndRange(habitId, dateStr, dateStr);
-      if (entries.length > 0) {
+      const dayEntries = entryByDate.get(dateStr) || [];
+      const hasCompleted = dayEntries.some((e) => e.status !== 'skipped');
+      const hasSkipped = dayEntries.some((e) => e.status === 'skipped');
+      if (hasCompleted) {
         count++;
+      } else if (hasSkipped) {
+        d.setDate(d.getDate() - 1);
+        continue;
       } else if (i === 0) {
-        // Today not yet done — check from yesterday
         d.setDate(d.getDate() - 1);
         continue;
       } else {
@@ -240,9 +257,9 @@ export function HabitDetailScreen() {
   }, [habitId, habit, todayEntries]);
 
   const totalCompletions = useMemo(() => {
-    // All-time completions for this habit
+    // All-time completions for this habit (exclude skipped)
     const entries = getEntriesByHabitAndRange(habitId, '2000-01-01', formatDate(new Date()));
-    return new Set(entries.map((e) => e.date)).size;
+    return new Set(entries.filter((e) => e.status !== 'skipped').map((e) => e.date)).size;
   }, [habitId, todayEntries]);
 
   const today = formatDate(new Date());
@@ -276,9 +293,10 @@ export function HabitDetailScreen() {
 
     const expectedDays = Math.max(1, activeDays);
     const entries = getEntriesByHabitAndRange(habitId, effectiveStart, todayStr);
-    const completedDays = new Set(entries.map((e) => e.date)).size;
-    const percent = Math.round((completedDays / expectedDays) * 100);
-    return { completed: completedDays, total: expectedDays, percent };
+    const completedDays = new Set(entries.filter((e) => e.status !== 'skipped').map((e) => e.date)).size;
+    const skippedDays = new Set(entries.filter((e) => e.status === 'skipped').map((e) => e.date)).size;
+    const percent = Math.round((completedDays / Math.max(1, expectedDays - skippedDays)) * 100);
+    return { completed: completedDays, total: Math.max(1, expectedDays - skippedDays), percent };
   }, [habitId, habit, todayEntries]);
 
   if (!habit) {
@@ -427,9 +445,31 @@ export function HabitDetailScreen() {
                         </Text>
                       </View>
                     ) : cell.status === 'rest' ? (
-                      /* rest day — subtle muted dot */
-                      <View className="w-8 h-8 rounded-full items-center justify-center opacity-40">
+                      /* rest day — dashed border */
+                      <View
+                        className="w-8 h-8 rounded-full items-center justify-center"
+                        style={{
+                          borderWidth: 1.5,
+                          borderStyle: 'dashed',
+                          borderColor: isDark ? '#555' : '#C0C0C0',
+                          opacity: cell.isToday ? 1 : 0.7,
+                        }}
+                      >
                         <Text className="text-xs font-medium text-muted-foreground dark:text-muted-foreground-dark">
+                          {cell.day}
+                        </Text>
+                      </View>
+                    ) : cell.status === 'skipped' ? (
+                      /* skipped day — amber indicator */
+                      <View
+                        className="w-8 h-8 rounded-full items-center justify-center"
+                        style={{
+                          backgroundColor: '#F59E0B30',
+                          borderWidth: cell.isToday ? 1.5 : 0,
+                          borderColor: cell.isToday ? '#F59E0B' : undefined,
+                        }}
+                      >
+                        <Text className="text-xs font-medium" style={{ color: '#F59E0B' }}>
                           {cell.day}
                         </Text>
                       </View>
@@ -446,6 +486,30 @@ export function HabitDetailScreen() {
               </View>
             ),
           )}
+
+          {/* Legend */}
+          <View className="flex-row flex-wrap mt-4 gap-x-4 gap-y-2 justify-center">
+            {/* Done */}
+            <View className="flex-row items-center">
+              <View className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: habit.color }} />
+              <Text className="text-[11px] text-muted-foreground dark:text-muted-foreground-dark">{t.legendDone}</Text>
+            </View>
+            {/* Missed */}
+            <View className="flex-row items-center">
+              <View className="w-3 h-3 rounded-full mr-1.5 border" style={{ borderColor: isDark ? '#555' : '#C0C0C0' }} />
+              <Text className="text-[11px] text-muted-foreground dark:text-muted-foreground-dark">{t.legendMissed}</Text>
+            </View>
+            {/* Rest */}
+            <View className="flex-row items-center">
+              <View className="w-3 h-3 rounded-full mr-1.5" style={{ borderWidth: 1.2, borderStyle: 'dashed', borderColor: isDark ? '#555' : '#C0C0C0' }} />
+              <Text className="text-[11px] text-muted-foreground dark:text-muted-foreground-dark">{t.legendRest}</Text>
+            </View>
+            {/* Skipped */}
+            <View className="flex-row items-center">
+              <View className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: '#F59E0B30' }} />
+              <Text className="text-[11px] text-muted-foreground dark:text-muted-foreground-dark">{t.legendSkipped}</Text>
+            </View>
+          </View>
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

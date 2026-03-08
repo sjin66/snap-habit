@@ -11,6 +11,7 @@ import {
   getEntriesByDate,
   deleteEntryByHabitAndDate,
   getEntriesByHabitAndRange,
+  generateId,
 } from '../services/database';
 import {
   cancelHabitReminders,
@@ -32,6 +33,8 @@ interface HabitState {
   reorderHabits: (orderedIds: string[]) => void;
   checkIn: (habitId: string) => void;
   uncheckIn: (habitId: string) => void;
+  skipHabit: (habitId: string) => void;
+  unskipHabit: (habitId: string) => void;
   getTodayItems: () => TodayHabitItem[];
 }
 
@@ -113,7 +116,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     if (already) return;
 
     const entry: HabitEntry = {
-      id: `${habitId}_${Date.now()}`,
+      id: generateId(),
       habitId,
       date: today,
       completedAt: new Date().toISOString(),
@@ -141,6 +144,44 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     }
   },
 
+  skipHabit: (habitId) => {
+    const today = getToday();
+    // Remove any existing entry for today first
+    deleteEntryByHabitAndDate(habitId, today);
+    const filteredEntries = get().todayEntries.filter(
+      (e) => !(e.habitId === habitId && e.date === today)
+    );
+
+    const entry: HabitEntry = {
+      id: generateId(),
+      habitId,
+      date: today,
+      completedAt: new Date().toISOString(),
+      status: 'skipped',
+    };
+    insertEntry(entry);
+    set({ todayEntries: [...filteredEntries, entry] });
+
+    // Cancel today's reminders for this habit
+    cancelHabitReminders(habitId).catch(() => {});
+  },
+
+  unskipHabit: (habitId) => {
+    const today = getToday();
+    deleteEntryByHabitAndDate(habitId, today);
+    set((state) => ({
+      todayEntries: state.todayEntries.filter(
+        (e) => !(e.habitId === habitId && e.date === today)
+      ),
+    }));
+
+    // Reschedule reminders
+    const habit = get().habits.find((h) => h.id === habitId);
+    if (habit?.reminders && habit.reminders.length > 0) {
+      scheduleHabitReminders(habitId, habit.name, habit.reminders, habit.frequency).catch(() => {});
+    }
+  },
+
   getTodayItems: (): TodayHabitItem[] => {
     const { habits, todayEntries } = get();
     const today = getToday();
@@ -151,9 +192,22 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       );
 
       const rest = isRestDay(habit.frequency, todayDate);
-      const completed = !!entry;
+      const completed = !!entry && entry.status !== 'skipped';
+      const skipped = !!entry && entry.status === 'skipped';
 
-      // Calculate current streak (consecutive active days, skipping rest days)
+      // Calculate current streak using batch query (one query per habit)
+      const streakStartDate = new Date();
+      streakStartDate.setDate(streakStartDate.getDate() - 365);
+      const streakStartStr = `${streakStartDate.getFullYear()}-${String(streakStartDate.getMonth() + 1).padStart(2, '0')}-${String(streakStartDate.getDate()).padStart(2, '0')}`;
+      const todayStr = getToday();
+      const allEntries = getEntriesByHabitAndRange(habit.id, streakStartStr, todayStr);
+      const entryByDate = new Map<string, HabitEntry[]>();
+      for (const e of allEntries) {
+        const list = entryByDate.get(e.date) || [];
+        list.push(e);
+        entryByDate.set(e.date, list);
+      }
+
       let streak = 0;
       const d = new Date();
       for (let i = 0; i < 365; i++) {
@@ -168,11 +222,15 @@ export const useHabitStore = create<HabitState>((set, get) => ({
           continue;
         }
 
-        const dayEntries = getEntriesByHabitAndRange(habit.id, dateStr, dateStr);
-        if (dayEntries.length > 0) {
+        const dayEntries = entryByDate.get(dateStr) || [];
+        const hasSkip = dayEntries.some((e) => e.status === 'skipped');
+        const hasCompleted = dayEntries.some((e) => e.status !== 'skipped');
+        if (hasCompleted) {
           streak++;
+        } else if (hasSkip) {
+          d.setDate(d.getDate() - 1);
+          continue;
         } else if (i === 0) {
-          // Today not done yet — check from yesterday
           d.setDate(d.getDate() - 1);
           continue;
         } else {
@@ -182,9 +240,11 @@ export const useHabitStore = create<HabitState>((set, get) => ({
       }
 
       // Determine status
-      let status: 'active' | 'completed' | 'rest';
+      let status: 'active' | 'completed' | 'skipped' | 'rest';
       if (completed) {
         status = 'completed';
+      } else if (skipped) {
+        status = 'skipped';
       } else if (rest) {
         status = 'rest';
       } else {
@@ -200,6 +260,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         dailyTarget: habit.dailyTarget,
         unit: habit.unit,
         isCompleted: completed,
+        isSkipped: skipped,
         completedAt: entry?.completedAt,
         streak,
         status,
