@@ -18,6 +18,7 @@ import {
   scheduleHabitReminders,
   refreshAllReminders,
 } from '../services/notifications';
+import { habitBridge } from '../native/HabitBridge';
 
 interface HabitState {
   habits: Habit[];
@@ -46,8 +47,11 @@ const getToday = () => {
   return `${y}-${m}-${d}`;
 };
 
-/** Check if a given date is a rest day for a habit's frequency config */
-export function isRestDay(frequency: { type: string; daysOfWeek?: number[] }, date: Date): boolean {
+/** Check if a given date is a rest day for a habit's frequency config.
+ *  If hasEntry is true (the habit has an entry on that date), always returns false
+ *  — a day that was actually acted on should never be retroactively treated as rest. */
+export function isRestDay(frequency: { type: string; daysOfWeek?: number[] }, date: Date, hasEntry?: boolean): boolean {
+  if (hasEntry) return false;
   if (frequency.type === 'daily') return false;
   if (frequency.type === 'weekly' || frequency.type === 'custom') {
     const dow = date.getDay() || 7; // Convert JS 0=Sun to ISO 7=Sun (Mon=1..Sun=7)
@@ -73,6 +77,10 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     // reschedule for uncompleted ones
     const completedIds = new Set(todayEntries.map((e) => e.habitId));
     refreshAllReminders(habits, completedIds).catch(() => {});
+
+    // Sync snapshot to iOS widget
+    const todayItems = get().getTodayItems();
+    habitBridge.syncSnapshotToWidget(todayItems);
   },
 
   setHabits: (habits) => set({ habits }),
@@ -80,6 +88,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
   addHabit: (habit) => {
     insertHabit(habit);
     set((state) => ({ habits: [...state.habits, habit] }));
+    setTimeout(() => habitBridge.syncSnapshotToWidget(get().getTodayItems()), 100);
   },
 
   updateHabit: (id, updates) => {
@@ -87,6 +96,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     set((state) => ({
       habits: state.habits.map((h) => (h.id === id ? { ...h, ...updates } : h)),
     }));
+    setTimeout(() => habitBridge.syncSnapshotToWidget(get().getTodayItems()), 100);
   },
 
   deleteHabit: (id) => {
@@ -94,6 +104,7 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     set((state) => ({
       habits: state.habits.filter((h) => h.id !== id),
     }));
+    setTimeout(() => habitBridge.syncSnapshotToWidget(get().getTodayItems()), 100);
   },
 
   reorderHabits: (orderedIds) => {
@@ -126,6 +137,9 @@ export const useHabitStore = create<HabitState>((set, get) => ({
 
     // Cancel today's remaining reminders for this habit
     cancelHabitReminders(habitId).catch(() => {});
+
+    // Sync to widget
+    setTimeout(() => habitBridge.syncSnapshotToWidget(get().getTodayItems()), 100);
   },
 
   uncheckIn: (habitId) => {
@@ -142,6 +156,9 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     if (habit?.reminders && habit.reminders.length > 0) {
       scheduleHabitReminders(habitId, habit.name, habit.reminders, habit.frequency).catch(() => {});
     }
+
+    // Sync to widget
+    setTimeout(() => habitBridge.syncSnapshotToWidget(get().getTodayItems()), 100);
   },
 
   skipHabit: (habitId) => {
@@ -164,6 +181,9 @@ export const useHabitStore = create<HabitState>((set, get) => ({
 
     // Cancel today's reminders for this habit
     cancelHabitReminders(habitId).catch(() => {});
+
+    // Sync to widget
+    setTimeout(() => habitBridge.syncSnapshotToWidget(get().getTodayItems()), 100);
   },
 
   unskipHabit: (habitId) => {
@@ -180,6 +200,9 @@ export const useHabitStore = create<HabitState>((set, get) => ({
     if (habit?.reminders && habit.reminders.length > 0) {
       scheduleHabitReminders(habitId, habit.name, habit.reminders, habit.frequency).catch(() => {});
     }
+
+    // Sync to widget
+    setTimeout(() => habitBridge.syncSnapshotToWidget(get().getTodayItems()), 100);
   },
 
   getTodayItems: (): TodayHabitItem[] => {
@@ -216,13 +239,15 @@ export const useHabitStore = create<HabitState>((set, get) => ({
         const day = String(d.getDate()).padStart(2, '0');
         const dateStr = `${y}-${m}-${day}`;
 
+        const dayEntries = entryByDate.get(dateStr) || [];
+        const dayHasEntry = dayEntries.length > 0;
+
         // Skip rest days — they don't break or count toward streak
-        if (isRestDay(habit.frequency, new Date(d))) {
+        // But if there's an entry on this day, it was an active day at the time
+        if (isRestDay(habit.frequency, new Date(d), dayHasEntry)) {
           d.setDate(d.getDate() - 1);
           continue;
         }
-
-        const dayEntries = entryByDate.get(dateStr) || [];
         const hasSkip = dayEntries.some((e) => e.status === 'skipped');
         const hasCompleted = dayEntries.some((e) => e.status !== 'skipped');
         if (hasCompleted) {

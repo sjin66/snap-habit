@@ -11,10 +11,3 @@ export const HABIT_ICONS = [
   'water', 'walk', 'book', 'leaf', 'medkit', 'nutrition',
   'moon', 'flag', 'fitness', 'pencil', 'musical-notes', 'flower',
 ] as const;
-
-}
-
-export const HABIT_ICONS = [
-  'water', 'walk', 'book', 'leaf', 'medkit', 'nutrition',
-  'moon', 'flag', 'fitness', 'pencil', 'musical-notes', 'flower',
-] as const;

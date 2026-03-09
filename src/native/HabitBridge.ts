@@ -1,45 +1,46 @@
-import { NativeModules } from 'react-native';
-import type { Habit, HabitEntry, TodaySnapshot } from '@types/habit';
+import { NativeModules, Platform } from 'react-native';
+import type { TodayHabitItem } from '@types/habit';
 
-const { HabitBridge } = NativeModules;
+const HabitBridgeModule = NativeModules.HabitBridge;
 
 /**
- * JS 侧 Native Module 桥接封装
- * 对应 ios/SnapHabit/HabitBridge.swift
+ * Sync today's habit snapshot to the shared App Group container
+ * so the iOS widget can read it.
  */
+async function syncSnapshotToWidget(items: TodayHabitItem[]): Promise<void> {
+  if (Platform.OS !== 'ios' || !HabitBridgeModule) return;
+
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const snapshot = {
+    date: dateStr,
+    habits: items,
+    updatedAt: new Date().toISOString(),
+  };
+
+  try {
+    await HabitBridgeModule.syncSnapshot(JSON.stringify(snapshot));
+    await HabitBridgeModule.reloadWidget();
+  } catch (e) {
+    console.warn('[HabitBridge] syncSnapshot failed:', e);
+  }
+}
+
+/**
+ * Trigger widget timeline refresh
+ */
+async function reloadWidget(): Promise<void> {
+  if (Platform.OS !== 'ios' || !HabitBridgeModule) return;
+  try {
+    await HabitBridgeModule.reloadWidget();
+  } catch (e) {
+    console.warn('[HabitBridge] reloadWidget failed:', e);
+  }
+}
+
 export const habitBridge = {
-  /**
-   * 打卡 - 写入原生存储并刷新 Widget
-   */
-  checkIn: async (habitId: string, date: string): Promise<void> => {
-    return HabitBridge.checkIn(habitId, date);
-  },
-
-  /**
-   * 读取今日习惯列表
-   */
-  getTodayHabits: async (): Promise<TodaySnapshot> => {
-    return HabitBridge.getTodayHabits();
-  },
-
-  /**
-   * 调度本地通知
-   */
-  scheduleNotification: async (habitId: string, time: string): Promise<void> => {
-    return HabitBridge.scheduleNotification(habitId, time);
-  },
-
-  /**
-   * 取消通知
-   */
-  cancelNotification: async (habitId: string): Promise<void> => {
-    return HabitBridge.cancelNotification(habitId);
-  },
-
-  /**
-   * 手动触发 Widget 刷新
-   */
-  reloadWidget: async (): Promise<void> => {
-    return HabitBridge.reloadWidget();
-  },
+  syncSnapshotToWidget,
+  reloadWidget,
 };
+
