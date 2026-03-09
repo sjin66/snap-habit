@@ -189,6 +189,7 @@ export default {
   achievementsEmpty: 'Start tracking habits to unlock achievements!',
 
   // Achievement categories
+  achCatAll: 'All',
   achCatStreak: 'Streaks',
   achCatCheckins: 'Check-ins',
   achCatHabits: 'Habits',

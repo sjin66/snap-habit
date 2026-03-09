@@ -189,6 +189,7 @@ export default {
   achievementsEmpty: '开始追踪习惯来解锁成就吧！',
 
   // Achievement categories
+  achCatAll: '全部',
   achCatStreak: '连续打卡',
   achCatCheckins: '打卡次数',
   achCatHabits: '习惯数量',

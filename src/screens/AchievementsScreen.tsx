@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, ScrollView, useColorScheme } from 'react-native';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, useColorScheme, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
@@ -106,6 +106,9 @@ export function AchievementsScreen() {
   const isDark = colorScheme === 'dark';
   const { habits, todayEntries } = useHabitStore();
   const { t } = useI18n();
+
+  const [selectedCategory, setSelectedCategory] = useState<'all' | AchievementCategory>('all');
+  const [filterVisible, setFilterVisible] = useState(false);
 
   // Re-trigger animations on each tab focus
   const [animKey, setAnimKey] = useState(0);
@@ -268,59 +271,172 @@ export function AchievementsScreen() {
     active: t.achCatActive,
   };
 
+  const filterTabs: { key: 'all' | AchievementCategory; label: string; color: string }[] = [
+    { key: 'all', label: t.achCatAll, color: '#F59E0B' },
+    ...CATEGORY_ORDER.map((cat) => ({ key: cat as AchievementCategory, label: categoryNames[cat], color: CATEGORY_COLORS[cat] })),
+  ];
+
+  const visibleCategories = selectedCategory === 'all' ? CATEGORY_ORDER : [selectedCategory];
+
   let animDelay = 0;
 
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark" edges={['top']}>
+      {/* Header — fixed */}
+      <View className="px-5 pt-4 pb-2 flex-row items-center justify-between">
+        <Text className="text-3xl font-bold text-foreground dark:text-foreground-dark">
+          {t.achievements}
+        </Text>
+        <TouchableOpacity
+          onPress={() => setFilterVisible(true)}
+          activeOpacity={0.7}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: selectedCategory === 'all'
+              ? (isDark ? '#333' : '#E0E0E0')
+              : (filterTabs.find(t => t.key === selectedCategory)?.color || '#F59E0B'),
+            backgroundColor: selectedCategory === 'all'
+              ? 'transparent'
+              : (filterTabs.find(t => t.key === selectedCategory)?.color || '#F59E0B') + '18',
+          }}
+        >
+          <Ionicons
+            name="filter"
+            size={16}
+            color={selectedCategory === 'all'
+              ? (isDark ? '#999' : '#666')
+              : (filterTabs.find(t => t.key === selectedCategory)?.color || '#F59E0B')}
+          />
+          <Text
+            style={{
+              marginLeft: 4,
+              fontSize: 13,
+              fontWeight: selectedCategory === 'all' ? '400' : '600',
+              color: selectedCategory === 'all'
+                ? (isDark ? '#999' : '#666')
+                : (filterTabs.find(t => t.key === selectedCategory)?.color || '#F59E0B'),
+            }}
+          >
+            {filterTabs.find(ft => ft.key === selectedCategory)?.label || t.achCatAll}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Summary Card — fixed */}
+      <View
+        className="mx-5 mt-2 mb-2 p-5 rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark"
+      >
+        <View className="flex-row items-center">
+          {/* Trophy circle */}
+          <View
+            className="w-16 h-16 rounded-full items-center justify-center"
+            style={{ backgroundColor: '#F59E0B22' }}
+          >
+            <Text style={{ fontSize: 28 }}>🏆</Text>
+          </View>
+          <View className="ml-4 flex-1">
+            <Text className="text-2xl font-bold text-foreground dark:text-foreground-dark">
+              {unlockedCount} {t.achievementsOf} {totalCount}
+            </Text>
+            <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
+              {t.achievementsUnlocked}
+            </Text>
+          </View>
+        </View>
+        {/* Overall progress bar */}
+        <View className="mt-4 h-2.5 bg-secondary dark:bg-secondary-dark rounded-full overflow-hidden">
+          <View
+            className="h-full rounded-full"
+            style={{
+              width: `${Math.round((unlockedCount / totalCount) * 100)}%`,
+              backgroundColor: '#F59E0B',
+            }}
+          />
+        </View>
+      </View>
+
+      {/* Filter Dropdown Modal */}
+      <Modal visible={filterVisible} transparent animationType="fade">
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={() => setFilterVisible(false)}
+        >
+          <View style={{ flex: 1, justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 100, paddingRight: 20 }}>
+            <View
+              style={{
+                borderRadius: 14,
+                overflow: 'hidden',
+                minWidth: 160,
+                backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF',
+                shadowColor: '#000',
+                shadowOpacity: 0.15,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 8,
+              }}
+            >
+              {filterTabs.map((tab, idx) => {
+                const isActive = selectedCategory === tab.key;
+                return (
+                  <TouchableOpacity
+                    key={tab.key}
+                    activeOpacity={0.6}
+                    onPress={() => {
+                      setSelectedCategory(tab.key);
+                      setFilterVisible(false);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderBottomWidth: idx < filterTabs.length - 1 ? 0.5 : 0,
+                      borderBottomColor: isDark ? '#333' : '#E8E8E8',
+                      backgroundColor: isActive ? (tab.color + '12') : 'transparent',
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: tab.color,
+                        marginRight: 10,
+                      }}
+                    />
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontSize: 15,
+                        fontWeight: isActive ? '600' : '400',
+                        color: isActive ? tab.color : (isDark ? '#CCC' : '#333'),
+                      }}
+                    >
+                      {tab.label}
+                    </Text>
+                    {isActive && (
+                      <Ionicons name="checkmark" size={18} color={tab.color} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Scrollable achievement list */}
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View className="px-5 pt-4 pb-2">
-          <Text className="text-3xl font-bold text-foreground dark:text-foreground-dark">
-            {t.achievements}
-          </Text>
-        </View>
-
-        {/* Summary Card */}
-        <Animated.View
-          key={`summary-${animKey}`}
-          entering={FadeInDown.duration(400)}
-          className="mx-5 mt-2 p-5 rounded-2xl border border-border dark:border-border-dark bg-card dark:bg-card-dark"
-        >
-          <View className="flex-row items-center">
-            {/* Trophy circle */}
-            <View
-              className="w-16 h-16 rounded-full items-center justify-center"
-              style={{ backgroundColor: '#F59E0B22' }}
-            >
-              <Text style={{ fontSize: 28 }}>🏆</Text>
-            </View>
-            <View className="ml-4 flex-1">
-              <Text className="text-2xl font-bold text-foreground dark:text-foreground-dark">
-                {unlockedCount} {t.achievementsOf} {totalCount}
-              </Text>
-              <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
-                {t.achievementsUnlocked}
-              </Text>
-            </View>
-          </View>
-          {/* Overall progress bar */}
-          <View className="mt-4 h-2.5 bg-secondary dark:bg-secondary-dark rounded-full overflow-hidden">
-            <View
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.round((unlockedCount / totalCount) * 100)}%`,
-                backgroundColor: '#F59E0B',
-              }}
-            />
-          </View>
-        </Animated.View>
-
-        {/* Achievement Categories */}
-        {CATEGORY_ORDER.map((cat) => {
+        {visibleCategories.map((cat) => {
           const achievements = groupedAchievements.get(cat) || [];
           const catColor = CATEGORY_COLORS[cat];
           const sectionDelay = animDelay;
