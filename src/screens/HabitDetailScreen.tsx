@@ -91,7 +91,8 @@ function buildMonthCalendar(
     const isBefore = dateStr < createdDate;
 
     const dayDate = new Date(year, month, d);
-    const rest = frequency ? isRestDay(frequency, dayDate) : false;
+    const dayHasEntry = completedDates.has(dateStr) || skippedDates.has(dateStr);
+    const rest = frequency ? isRestDay(frequency, dayDate, dayHasEntry) : false;
 
     let status: CalendarDay['status'];
     if (isFuture) {
@@ -122,7 +123,7 @@ function buildMonthCalendar(
   return {
     days,
     monthLabel: `${monthNames[month]} ${year}`,
-    successRate: expectedCount > 0 ? Math.round((doneCount / expectedCount) * 100) : 0,
+    successRate: expectedCount > 0 ? Math.min(100, Math.round((doneCount / expectedCount) * 100)) : 0,
   };
 }
 
@@ -190,7 +191,7 @@ function CircularProgress({
       {/* Center text */}
       <View className="absolute items-center">
         <Text className="text-[42px] font-bold text-foreground dark:text-foreground-dark">
-          {total > 0 ? Math.round((completed / total) * 100) : 0}<Text className="text-2xl text-muted-foreground dark:text-muted-foreground-dark font-light">%</Text>
+          {total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0}<Text className="text-2xl text-muted-foreground dark:text-muted-foreground-dark font-light">%</Text>
         </Text>
         <Text className="text-xs font-semibold tracking-widest text-muted-foreground dark:text-muted-foreground-dark mt-0.5">
           {last30DaysLabel}
@@ -233,11 +234,12 @@ export function HabitDetailScreen() {
     const d = new Date();
     for (let i = 0; i < 365; i++) {
       const dateStr = formatDate(d);
-      if (habit?.frequency && isRestDay(habit.frequency, new Date(d))) {
+      const dayEntries = entryByDate.get(dateStr) || [];
+      const dayHasEntry = dayEntries.length > 0;
+      if (habit?.frequency && isRestDay(habit.frequency, new Date(d), dayHasEntry)) {
         d.setDate(d.getDate() - 1);
         continue;
       }
-      const dayEntries = entryByDate.get(dateStr) || [];
       const hasCompleted = dayEntries.some((e) => e.status !== 'skipped');
       const hasSkipped = dayEntries.some((e) => e.status === 'skipped');
       if (hasCompleted) {
@@ -267,7 +269,7 @@ export function HabitDetailScreen() {
     (e) => e.habitId === habitId && e.date === today,
   );
 
-  // 30-day completion rate (excluding rest days)
+  // 30-day completion rate (excluding rest days, respecting historical entries)
   const thirtyDayRate = useMemo(() => {
     const todayStr = formatDate(new Date());
     const thirtyAgo = formatDate(daysAgo(29));
@@ -279,23 +281,24 @@ export function HabitDetailScreen() {
       (new Date(todayStr + 'T00:00:00').getTime() - new Date(effectiveStart + 'T00:00:00').getTime()) / msPerDay
     ) + 1);
 
-    // Count only active days (exclude rest days based on frequency)
+    const entries = getEntriesByHabitAndRange(habitId, effectiveStart, todayStr);
+    const entryDates = new Set(entries.map((e) => e.date));
+    const completedDays = new Set(entries.filter((e) => e.status !== 'skipped').map((e) => e.date)).size;
+    const skippedDays = new Set(entries.filter((e) => e.status === 'skipped').map((e) => e.date)).size;
+
+    // Count only active days (exclude rest days, but days with entries are always active)
     let activeDays = 0;
     const freq = habit?.frequency;
     for (let i = 0; i < totalDays; i++) {
       const d = new Date(new Date(effectiveStart + 'T00:00:00').getTime() + i * msPerDay);
-      const dow = d.getDay() || 7; // Convert JS 0=Sun to ISO 7=Sun (Mon=1..Sun=7)
-      if (freq && (freq.type === 'weekly' || freq.type === 'custom') && freq.daysOfWeek && freq.daysOfWeek.length > 0) {
-        if (!freq.daysOfWeek.includes(dow)) continue; // rest day
-      }
+      const dateStr = formatDate(d);
+      const dayHasEntry = entryDates.has(dateStr);
+      if (freq && isRestDay(freq, d, dayHasEntry)) continue;
       activeDays++;
     }
 
     const expectedDays = Math.max(1, activeDays);
-    const entries = getEntriesByHabitAndRange(habitId, effectiveStart, todayStr);
-    const completedDays = new Set(entries.filter((e) => e.status !== 'skipped').map((e) => e.date)).size;
-    const skippedDays = new Set(entries.filter((e) => e.status === 'skipped').map((e) => e.date)).size;
-    const percent = Math.round((completedDays / Math.max(1, expectedDays - skippedDays)) * 100);
+    const percent = Math.min(100, Math.round((completedDays / Math.max(1, expectedDays - skippedDays)) * 100));
     return { completed: completedDays, total: Math.max(1, expectedDays - skippedDays), percent };
   }, [habitId, habit, todayEntries]);
 

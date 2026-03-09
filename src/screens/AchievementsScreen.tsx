@@ -163,7 +163,9 @@ export function AchievementsScreen() {
         const dateStr = formatDate(d);
         if (dateStr < createdDate) break;
 
-        if (habit.frequency && isRestDay(habit.frequency, new Date(d))) {
+        if (habit.frequency && isRestDay(habit.frequency, new Date(d),
+          (completedByDate.get(dateStr)?.has(habit.id) ?? false) || (skippedByDate.get(dateStr)?.has(habit.id) ?? false)
+        )) {
           d.setDate(d.getDate() - 1);
           continue;
         }
@@ -211,7 +213,8 @@ export function AchievementsScreen() {
           const deleted = h.deletedAt.split('T')[0];
           if (dateStr > deleted) return false;
         }
-        if (h.frequency && isRestDay(h.frequency, new Date(d))) return false;
+        const dayHasEntry = (completedByDate.get(dateStr)?.has(h.id) ?? false) || (skippedByDate.get(dateStr)?.has(h.id) ?? false);
+        if (h.frequency && isRestDay(h.frequency, new Date(d), dayHasEntry)) return false;
         return true;
       });
 

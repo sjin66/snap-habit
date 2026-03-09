@@ -24,7 +24,7 @@ export function ProgressCard({ completed, total }: Props) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { t } = useI18n();
-  const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+  const percent = total === 0 ? 0 : Math.min(100, Math.round((completed / total) * 100));
   const isAllDone = total > 0 && completed === total;
 
   const prevCompletedRef = useRef(completed);
