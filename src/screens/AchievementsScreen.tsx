@@ -13,10 +13,11 @@ import {
   getTotalHabitsCreated,
 } from '../services/database';
 import { useI18n } from '../i18n';
+import { HABIT_CATEGORIES, type HabitCategory } from '../types/habit';
 
 // ─── Types ─────────────────────────────────────────────
 
-type AchievementCategory = 'streak' | 'checkins' | 'habits' | 'perfect' | 'active';
+type AchievementCategory = 'streak' | 'checkins' | 'habits' | 'perfect' | 'active' | 'category';
 
 interface AchievementDef {
   id: string;
@@ -34,6 +35,7 @@ interface AchievementData {
   totalHabits: number;
   perfectDays: number;
   activeDays: number;
+  checkinsByCategory: Record<HabitCategory, number>;
 }
 
 interface ComputedAchievement {
@@ -45,20 +47,43 @@ interface ComputedAchievement {
 
 // ─── Achievement Definitions ───────────────────────────
 
+const CATEGORY_KEYS = HABIT_CATEGORIES.map((item) => item.name);
+
+const CATEGORY_ACHIEVEMENT_META: {
+  category: Exclude<HabitCategory, 'Other'>;
+  emoji: string;
+  explorerThreshold: number;
+  masterThreshold: number;
+  explorerNameKey: string;
+  explorerDescKey: string;
+  masterNameKey: string;
+  masterDescKey: string;
+}[] = [
+  { category: 'Health', emoji: '💚', explorerThreshold: 50, masterThreshold: 200, explorerNameKey: 'achHealthExplorerName', explorerDescKey: 'achHealthExplorerDesc', masterNameKey: 'achHealthMasterName', masterDescKey: 'achHealthMasterDesc' },
+  { category: 'Mind', emoji: '🧠', explorerThreshold: 30, masterThreshold: 100, explorerNameKey: 'achMindExplorerName', explorerDescKey: 'achMindExplorerDesc', masterNameKey: 'achMindMasterName', masterDescKey: 'achMindMasterDesc' },
+  { category: 'Productivity', emoji: '⚡', explorerThreshold: 50, masterThreshold: 200, explorerNameKey: 'achProductivityExplorerName', explorerDescKey: 'achProductivityExplorerDesc', masterNameKey: 'achProductivityMasterName', masterDescKey: 'achProductivityMasterDesc' },
+  { category: 'Learning', emoji: '📚', explorerThreshold: 50, masterThreshold: 200, explorerNameKey: 'achLearningExplorerName', explorerDescKey: 'achLearningExplorerDesc', masterNameKey: 'achLearningMasterName', masterDescKey: 'achLearningMasterDesc' },
+  { category: 'Social', emoji: '💬', explorerThreshold: 30, masterThreshold: 100, explorerNameKey: 'achSocialExplorerName', explorerDescKey: 'achSocialExplorerDesc', masterNameKey: 'achSocialMasterName', masterDescKey: 'achSocialMasterDesc' },
+  { category: 'Finance', emoji: '💰', explorerThreshold: 30, masterThreshold: 100, explorerNameKey: 'achFinanceExplorerName', explorerDescKey: 'achFinanceExplorerDesc', masterNameKey: 'achFinanceMasterName', masterDescKey: 'achFinanceMasterDesc' },
+  { category: 'Creative', emoji: '🎨', explorerThreshold: 30, masterThreshold: 100, explorerNameKey: 'achCreativeExplorerName', explorerDescKey: 'achCreativeExplorerDesc', masterNameKey: 'achCreativeMasterName', masterDescKey: 'achCreativeMasterDesc' },
+  { category: 'Lifestyle', emoji: '🏡', explorerThreshold: 50, masterThreshold: 200, explorerNameKey: 'achLifestyleExplorerName', explorerDescKey: 'achLifestyleExplorerDesc', masterNameKey: 'achLifestyleMasterName', masterDescKey: 'achLifestyleMasterDesc' },
+];
+
 const ACHIEVEMENTS: AchievementDef[] = [
   // Streak
-  { id: 'first_flame',   category: 'streak',   emoji: '🔥', nameKey: 'achFirstFlameName',   descKey: 'achFirstFlameDesc',   threshold: 3,   getValue: (d) => d.longestStreak },
+  { id: 'first_spark',   category: 'streak',   emoji: '🔥', nameKey: 'achFirstSparkName',   descKey: 'achFirstSparkDesc',   threshold: 3,   getValue: (d) => d.longestStreak },
   { id: 'on_fire',       category: 'streak',   emoji: '🔥', nameKey: 'achOnFireName',       descKey: 'achOnFireDesc',       threshold: 7,   getValue: (d) => d.longestStreak },
   { id: 'unstoppable',   category: 'streak',   emoji: '⚡', nameKey: 'achUnstoppableName',  descKey: 'achUnstoppableDesc',  threshold: 14,  getValue: (d) => d.longestStreak },
-  { id: 'habit_master',  category: 'streak',   emoji: '👑', nameKey: 'achHabitMasterName',  descKey: 'achHabitMasterDesc',  threshold: 30,  getValue: (d) => d.longestStreak },
+  { id: 'habit_champion',category: 'streak',   emoji: '👑', nameKey: 'achHabitChampionName',descKey: 'achHabitChampionDesc',threshold: 30,  getValue: (d) => d.longestStreak },
   { id: 'iron_will',     category: 'streak',   emoji: '🛡️', nameKey: 'achIronWillName',     descKey: 'achIronWillDesc',     threshold: 60,  getValue: (d) => d.longestStreak },
-  { id: 'legend',        category: 'streak',   emoji: '🏆', nameKey: 'achLegendName',       descKey: 'achLegendDesc',       threshold: 100, getValue: (d) => d.longestStreak },
+  { id: 'legendary',     category: 'streak',   emoji: '🏆', nameKey: 'achLegendaryName',    descKey: 'achLegendaryDesc',    threshold: 100, getValue: (d) => d.longestStreak },
   // Check-ins
   { id: 'first_step',      category: 'checkins', emoji: '👣', nameKey: 'achFirstStepName',      descKey: 'achFirstStepDesc',      threshold: 1,   getValue: (d) => d.totalCheckins },
   { id: 'getting_started', category: 'checkins', emoji: '🚀', nameKey: 'achGettingStartedName', descKey: 'achGettingStartedDesc', threshold: 10,  getValue: (d) => d.totalCheckins },
-  { id: 'committed',       category: 'checkins', emoji: '💪', nameKey: 'achCommittedName',      descKey: 'achCommittedDesc',      threshold: 50,  getValue: (d) => d.totalCheckins },
-  { id: 'centurion',       category: 'checkins', emoji: '💯', nameKey: 'achCenturionName',      descKey: 'achCenturionDesc',      threshold: 100, getValue: (d) => d.totalCheckins },
+  { id: 'consistent',      category: 'checkins', emoji: '💪', nameKey: 'achConsistentName',     descKey: 'achConsistentDesc',     threshold: 50,  getValue: (d) => d.totalCheckins },
+  { id: 'century_club',    category: 'checkins', emoji: '💯', nameKey: 'achCenturyClubName',    descKey: 'achCenturyClubDesc',    threshold: 100, getValue: (d) => d.totalCheckins },
   { id: 'dedicated',       category: 'checkins', emoji: '🌟', nameKey: 'achDedicatedName',      descKey: 'achDedicatedDesc',      threshold: 500, getValue: (d) => d.totalCheckins },
+  { id: 'elite',           category: 'checkins', emoji: '👑', nameKey: 'achEliteName',          descKey: 'achEliteDesc',          threshold: 1000,getValue: (d) => d.totalCheckins },
   // Habits
   { id: 'seed_planted',    category: 'habits', emoji: '🌱', nameKey: 'achSeedPlantedName',    descKey: 'achSeedPlantedDesc',    threshold: 1, getValue: (d) => d.totalHabits },
   { id: 'growing_garden',  category: 'habits', emoji: '🌿', nameKey: 'achGrowingGardenName',  descKey: 'achGrowingGardenDesc',  threshold: 3, getValue: (d) => d.totalHabits },
@@ -68,13 +93,34 @@ const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'perfect_week',  category: 'perfect', emoji: '🌟', nameKey: 'achPerfectWeekName',  descKey: 'achPerfectWeekDesc',  threshold: 7,  getValue: (d) => d.perfectDays },
   { id: 'perfect_month', category: 'perfect', emoji: '✨', nameKey: 'achPerfectMonthName', descKey: 'achPerfectMonthDesc', threshold: 30, getValue: (d) => d.perfectDays },
   // Active Days
-  { id: 'week_one',  category: 'active', emoji: '📅', nameKey: 'achWeekOneName',  descKey: 'achWeekOneDesc',  threshold: 7,   getValue: (d) => d.activeDays },
-  { id: 'month_one', category: 'active', emoji: '📆', nameKey: 'achMonthOneName', descKey: 'achMonthOneDesc', threshold: 30,  getValue: (d) => d.activeDays },
-  { id: 'quarter',   category: 'active', emoji: '🗓️', nameKey: 'achQuarterName',  descKey: 'achQuarterDesc',  threshold: 90,  getValue: (d) => d.activeDays },
+  { id: 'first_week',   category: 'active', emoji: '📅', nameKey: 'achFirstWeekName',   descKey: 'achFirstWeekDesc',   threshold: 7,   getValue: (d) => d.activeDays },
+  { id: 'first_month',  category: 'active', emoji: '📆', nameKey: 'achFirstMonthName',  descKey: 'achFirstMonthDesc',  threshold: 30,  getValue: (d) => d.activeDays },
+  { id: 'three_months', category: 'active', emoji: '🗓️', nameKey: 'achThreeMonthsName', descKey: 'achThreeMonthsDesc', threshold: 90,  getValue: (d) => d.activeDays },
   { id: 'half_year', category: 'active', emoji: '🎯', nameKey: 'achHalfYearName', descKey: 'achHalfYearDesc', threshold: 180, getValue: (d) => d.activeDays },
+  // Category achievements
+  ...CATEGORY_ACHIEVEMENT_META.flatMap((meta) => [
+    {
+      id: `${meta.category.toLowerCase()}_explorer`,
+      category: 'category' as const,
+      emoji: meta.emoji,
+      nameKey: meta.explorerNameKey,
+      descKey: meta.explorerDescKey,
+      threshold: meta.explorerThreshold,
+      getValue: (d: AchievementData) => d.checkinsByCategory[meta.category] ?? 0,
+    },
+    {
+      id: `${meta.category.toLowerCase()}_master`,
+      category: 'category' as const,
+      emoji: meta.emoji,
+      nameKey: meta.masterNameKey,
+      descKey: meta.masterDescKey,
+      threshold: meta.masterThreshold,
+      getValue: (d: AchievementData) => d.checkinsByCategory[meta.category] ?? 0,
+    },
+  ]),
 ];
 
-const CATEGORY_ORDER: AchievementCategory[] = ['streak', 'checkins', 'habits', 'perfect', 'active'];
+const CATEGORY_ORDER: AchievementCategory[] = ['streak', 'checkins', 'habits', 'perfect', 'active', 'category'];
 
 const CATEGORY_COLORS: Record<AchievementCategory, string> = {
   streak: '#EF4444',
@@ -82,6 +128,7 @@ const CATEGORY_COLORS: Record<AchievementCategory, string> = {
   habits: '#22C55E',
   perfect: '#F59E0B',
   active: '#8B5CF6',
+  category: '#14B8A6',
 };
 
 // ─── Helpers ───────────────────────────────────────────
@@ -122,6 +169,7 @@ export function AchievementsScreen() {
   const achievementData = useMemo((): AchievementData => {
     const today = formatDate(new Date());
     const yearAgo = formatDate(daysAgo(364));
+    const allTimeStart = '1970-01-01';
 
     // Aggregate queries
     const totalCheckins = getTotalCompletedEntries();
@@ -131,6 +179,20 @@ export function AchievementsScreen() {
     // For streaks and perfect days, use entries from last 365 days
     const allHabits = getAllHabitsForStats();
     const allEntries = getEntriesInRange(yearAgo, today);
+    const allTimeEntries = getEntriesInRange(allTimeStart, today);
+
+    const habitCategoryMap = new Map(allHabits.map((habit) => [habit.id, habit.category]));
+    const checkinsByCategory = CATEGORY_KEYS.reduce((acc, key) => {
+      acc[key] = 0;
+      return acc;
+    }, {} as Record<HabitCategory, number>);
+
+    for (const entry of allTimeEntries) {
+      if (entry.status === 'skipped') continue;
+      const category = habitCategoryMap.get(entry.habitId);
+      if (!category || !(category in checkinsByCategory)) continue;
+      checkinsByCategory[category] += 1;
+    }
 
     // Build entryMap: date → Set<habitId> (completed only)
     const completedByDate = new Map<string, Set<string>>();
@@ -238,7 +300,7 @@ export function AchievementsScreen() {
       if (allDone && hasCompletion) perfectDays++;
     }
 
-    return { longestStreak, totalCheckins, totalHabits, perfectDays, activeDays };
+    return { longestStreak, totalCheckins, totalHabits, perfectDays, activeDays, checkinsByCategory };
   }, [habits, todayEntries]);
 
   // Compute achievement states
@@ -269,6 +331,7 @@ export function AchievementsScreen() {
     habits: t.achCatHabits,
     perfect: t.achCatPerfect,
     active: t.achCatActive,
+    category: t.achCatCategory,
   };
 
   const filterTabs: { key: 'all' | AchievementCategory; label: string; color: string }[] = [
