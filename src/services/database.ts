@@ -1,6 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import * as Crypto from 'expo-crypto';
-import type { Habit, HabitEntry, FrequencyConfig } from '@types/habit';
+import type { Habit, HabitEntry, FrequencyConfig } from '../types/habit';
+import { normalizeHabitCategory } from '../types/habit';
 
 let db: SQLite.SQLiteDatabase | null = null;
 
@@ -93,6 +94,11 @@ export function initDatabase(): void {
     () => {
       database.execSync(`CREATE UNIQUE INDEX IF NOT EXISTS idx_entries_unique_habit_date ON entries(habit_id, date)`);
     },
+    // v3: normalize legacy category values to the new category system
+    () => {
+      database.execSync(`UPDATE habits SET category = 'Health' WHERE category = 'Fitness'`);
+      database.execSync(`UPDATE habits SET category = 'Mind' WHERE category = 'Mindfulness'`);
+    },
   ];
 
   // Run pending migrations inside a transaction
@@ -144,7 +150,7 @@ export function insertHabit(habit: Habit): void {
     habit.icon,
     habit.color,
     habit.note ?? null,
-    habit.category ?? null,
+    normalizeHabitCategory(habit.category) ?? null,
     habit.frequency.type,
     habit.frequency.daysOfWeek ? JSON.stringify(habit.frequency.daysOfWeek) : null,
     habit.frequency.timesPerWeek ?? null,
@@ -167,7 +173,7 @@ export function updateHabitInDB(id: string, updates: Partial<Habit>): void {
   if (updates.icon !== undefined) { fields.push('icon = ?'); values.push(updates.icon); }
   if (updates.color !== undefined) { fields.push('color = ?'); values.push(updates.color); }
   if (updates.note !== undefined) { fields.push('note = ?'); values.push(updates.note); }
-  if (updates.category !== undefined) { fields.push('category = ?'); values.push(updates.category); }
+  if (updates.category !== undefined) { fields.push('category = ?'); values.push(normalizeHabitCategory(updates.category) ?? null); }
   if (updates.dailyTarget !== undefined) { fields.push('daily_target = ?'); values.push(updates.dailyTarget); }
   if (updates.unit !== undefined) { fields.push('unit = ?'); values.push(updates.unit); }
   if (updates.reminders !== undefined) { fields.push('reminder_time = ?'); values.push(updates.reminders && updates.reminders.length > 0 ? JSON.stringify(updates.reminders) : null); }
@@ -315,7 +321,7 @@ function rowToHabit(row: any): Habit {
     name: row.name,
     icon: row.icon,
     color: row.color,
-    category: row.category ?? undefined,
+    category: normalizeHabitCategory(row.category) ?? undefined,
     note: row.note ?? undefined,
     frequency,
     dailyTarget: row.daily_target ?? 1,

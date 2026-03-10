@@ -1,17 +1,33 @@
 // Habit 数据模型
 export const HABIT_CATEGORIES = [
   { name: 'Health',       color: '#22C55E' },
-  { name: 'Fitness',      color: '#EF4444' },
-  { name: 'Mindfulness',  color: '#8B5CF6' },
+  { name: 'Mind',         color: '#8B5CF6' },
   { name: 'Productivity', color: '#F59E0B' },
   { name: 'Learning',     color: '#3B82F6' },
   { name: 'Social',       color: '#EC4899' },
   { name: 'Finance',      color: '#14B8A6' },
   { name: 'Creative',     color: '#F97316' },
+  { name: 'Lifestyle',    color: '#84CC16' },
   { name: 'Other',        color: '#6B7280' },
 ] as const;
 
 export type HabitCategory = (typeof HABIT_CATEGORIES)[number]['name'];
+
+type LegacyHabitCategory = 'Fitness' | 'Mindfulness';
+
+const LEGACY_CATEGORY_MAP: Record<LegacyHabitCategory, HabitCategory> = {
+  Fitness: 'Health',
+  Mindfulness: 'Mind',
+};
+
+export function normalizeHabitCategory(category?: string): HabitCategory | undefined {
+  if (!category) return undefined;
+
+  const directMatch = HABIT_CATEGORIES.find((c) => c.name === category);
+  if (directMatch) return directMatch.name;
+
+  return LEGACY_CATEGORY_MAP[category as LegacyHabitCategory];
+}
 
 /** Darken a hex color by a factor (0–1, e.g. 0.25 = 25% darker) */
 function darken(hex: string, amount: number): string {
@@ -23,8 +39,9 @@ function darken(hex: string, amount: number): string {
 
 /** Returns the category color — uses darker shade in light mode for better contrast */
 export function getCategoryColor(category?: HabitCategory, isDark = false): string | undefined {
-  if (!category) return undefined;
-  const cat = HABIT_CATEGORIES.find((c) => c.name === category);
+  const normalized = normalizeHabitCategory(category);
+  if (!normalized) return undefined;
+  const cat = HABIT_CATEGORIES.find((c) => c.name === normalized);
   if (!cat) return undefined;
   return isDark ? cat.color : darken(cat.color, 0.25);
 }

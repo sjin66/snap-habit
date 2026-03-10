@@ -26,9 +26,9 @@ interface CommonHabit {
 const COMMON_HABITS: CommonHabit[] = [
   { nameKey: 'habitHydration',   categoryKey: 'catHealth',        category: 'Health',       icon: 'water',           color: '#3B82F6', goal: 2000, unit: 'ml' },
   { nameKey: 'habitReading',     categoryKey: 'catLearning',      category: 'Learning',     icon: 'book',            color: '#8B5CF6', goal: 30, unit: 'min' },
-  { nameKey: 'habitMeditation',  categoryKey: 'catMindfulness',   category: 'Mindfulness',  icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
-  { nameKey: 'habitExercise',    categoryKey: 'catFitness',       category: 'Fitness',      icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },
-  { nameKey: 'habitJournaling',  categoryKey: 'catMindfulness',   category: 'Mindfulness',  icon: 'pencil',          color: '#F59E0B', goal: 1,  unit: 'times' },
+  { nameKey: 'habitMeditation',  categoryKey: 'catMind',          category: 'Mind',         icon: 'leaf',            color: '#22C55E', goal: 10, unit: 'min' },
+  { nameKey: 'habitExercise',    categoryKey: 'catHealth',        category: 'Health',       icon: 'fitness',         color: '#EF4444', goal: 30, unit: 'min' },
+  { nameKey: 'habitJournaling',  categoryKey: 'catMind',          category: 'Mind',         icon: 'pencil',          color: '#F59E0B', goal: 1,  unit: 'times' },
   { nameKey: 'habitDeepWork',    categoryKey: 'catProductivity',  category: 'Productivity', icon: 'flash',           color: '#F97316', goal: 2,  unit: 'hours' },
   { nameKey: 'habitSleepEarly',  categoryKey: 'catHealth',        category: 'Health',       icon: 'moon',            color: '#6366F1', goal: 1,  unit: 'times' },
   { nameKey: 'habitNutrition',   categoryKey: 'catHealth',        category: 'Health',       icon: 'nutrition',       color: '#14B8A6', goal: 3,  unit: 'times' },

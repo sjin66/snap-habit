@@ -78,26 +78,29 @@ export default {
 
   // ── Categories ──
   catHealth: 'Health',
-  catFitness: 'Fitness',
-  catMindfulness: 'Mindfulness',
+  catMind: 'Mind',
   catProductivity: 'Productivity',
   catLearning: 'Learning',
   catSocial: 'Social',
   catFinance: 'Finance',
   catCreative: 'Creative',
+  catLifestyle: 'Lifestyle',
   catOther: 'Other',
 
   // Category name mapping (DB name → display)
   categoryName: {
     Health: 'Health',
-    Fitness: 'Fitness',
-    Mindfulness: 'Mindfulness',
+    Mind: 'Mind',
     Productivity: 'Productivity',
     Learning: 'Learning',
     Social: 'Social',
     Finance: 'Finance',
     Creative: 'Creative',
+    Lifestyle: 'Lifestyle',
     Other: 'Other',
+    // Legacy category aliases for existing data
+    Fitness: 'Health',
+    Mindfulness: 'Mind',
   } as Record<string, string>,
 
   // ── HabitDetailScreen ──

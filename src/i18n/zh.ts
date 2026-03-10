@@ -78,26 +78,29 @@ export default {
 
   // ── Categories ──
   catHealth: '健康',
-  catFitness: '健身',
-  catMindfulness: '正念',
+  catMind: '身心',
   catProductivity: '效率',
   catLearning: '学习',
   catSocial: '社交',
   catFinance: '理财',
   catCreative: '创意',
+  catLifestyle: '生活',
   catOther: '其他',
 
   // Category name mapping (DB name → display)
   categoryName: {
     Health: '健康',
-    Fitness: '健身',
-    Mindfulness: '正念',
+    Mind: '身心',
     Productivity: '效率',
     Learning: '学习',
     Social: '社交',
     Finance: '理财',
     Creative: '创意',
+    Lifestyle: '生活',
     Other: '其他',
+    // Legacy category aliases for existing data
+    Fitness: '健康',
+    Mindfulness: '身心',
   } as Record<string, string>,
 
   // ── HabitDetailScreen ──

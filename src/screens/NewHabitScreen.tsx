@@ -17,8 +17,8 @@ import {
   cancelHabitReminders,
 } from '../services/notifications';
 import { generateId } from '../services/database';
-import type { FrequencyConfig, HabitCategory } from '@types/habit';
-import { HABIT_CATEGORIES, getCategoryColor } from '../types/habit';
+import type { FrequencyConfig, HabitCategory } from '../types/habit';
+import { HABIT_CATEGORIES, getCategoryColor, normalizeHabitCategory } from '../types/habit';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import WheelPicker from '../components/WheelPicker';
 import { useI18n } from '../i18n';
@@ -64,8 +64,7 @@ type NewHabitRouteParams = {
 export function NewHabitScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<NewHabitRouteParams, 'NewHabit'>>();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = useColorScheme() === 'dark';
   const { addHabit, updateHabit, habits } = useHabitStore();
   const { t } = useI18n();
 
@@ -93,7 +92,7 @@ export function NewHabitScreen() {
   const [targetText, setTargetText] = useState(String(editHabit?.dailyTarget ?? preset.presetGoal ?? 1));
   const [unit, setUnit] = useState(editHabit?.unit ?? preset.presetUnit ?? 'times');
   const [category, setCategory] = useState<HabitCategory | undefined>(
-    editHabit?.category ?? (preset.presetCategory as HabitCategory | undefined) ?? undefined,
+    normalizeHabitCategory(editHabit?.category) ?? normalizeHabitCategory(preset.presetCategory) ?? undefined,
   );
   const [freqType, setFreqType] = useState<'daily' | 'weekly'>(
     (editHabit?.frequency?.type === 'weekly' ? 'weekly' : 'daily') as 'daily' | 'weekly',
