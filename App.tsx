@@ -2,12 +2,13 @@ import './global.css';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootNavigator } from '@navigation/RootNavigator';
 import { useHabitStore } from '@stores/habitStore';
 import { useI18n } from './src/i18n';
+import { LaunchScreen } from '@components/LaunchScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import {
   setupNotificationCategories,
@@ -22,6 +23,7 @@ export default function App() {
   const initialize = useHabitStore((s) => s.initialize);
   const loadLanguage = useI18n((s) => s.loadLanguage);
   const responseListenerRef = useRef<Notifications.EventSubscription | null>(null);
+  const [showLaunch, setShowLaunch] = useState(true);
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -64,9 +66,16 @@ export default function App() {
     setOnboardingDone(true);
   }, []);
 
-  // Still loading onboarding state
-  if (onboardingDone === null) return null;
+  if (showLaunch) {
+    return (
+      <LaunchScreen
+        canFinish={onboardingDone !== null}
+        onFinished={() => setShowLaunch(false)}
+      />
+    );
+  }
 
+  // Still loading onboarding state
   // Show onboarding on first launch
   if (!onboardingDone) {
     return (
@@ -78,7 +87,7 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <RootNavigator colorScheme={colorScheme} />
       </SafeAreaProvider>
     </GestureHandlerRootView>
