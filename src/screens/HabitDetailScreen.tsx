@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   useColorScheme,
-  Dimensions,
+  PanResponder,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -19,7 +20,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useHabitStore, isRestDay } from '../stores/habitStore';
-import { getEntriesByHabitAndRange } from '../services/database';
+import { getEntriesByHabitAndRange, generateId, insertEntry, updateHabitCreatedAtInDB } from '../services/database';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useI18n } from '../i18n';
 
@@ -53,18 +54,34 @@ const MONTH_NAMES_FALLBACK = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-/** Build a full monthly calendar for the current month */
+function toMonthIndex(date: Date): number {
+  return date.getFullYear() * 12 + date.getMonth();
+}
+
+function fromMonthIndex(index: number): { year: number; month: number } {
+  return { year: Math.floor(index / 12), month: index % 12 };
+}
+
+function toDateOnly(value?: string): string | undefined {
+  if (!value) return undefined;
+  const dateOnly = value.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return dateOnly;
+  return undefined;
+}
+
+/** Build a full monthly calendar for a specific month */
 function buildMonthCalendar(
   habitId: string,
   createdAt: string,
+  monthIndex: number,
+  activeEndAt?: string,
   frequency?: { type: string; daysOfWeek?: number[] },
   monthNames: readonly string[] = MONTH_NAMES_FALLBACK,
 ): { days: (CalendarDay | null)[]; monthLabel: string; successRate: number } {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const todayStr = formatDate(now);
+  const { year, month } = fromMonthIndex(monthIndex);
+  const todayStr = formatDate(new Date());
   const createdDate = (createdAt || '').split('T')[0];
+  const activeEndDate = activeEndAt || todayStr;
 
   const firstDay = new Date(year, month, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -86,8 +103,8 @@ function buildMonthCalendar(
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = formatDate(new Date(year, month, d));
-    const isToday = dateStr === todayStr;
-    const isFuture = dateStr > todayStr;
+    const isToday = dateStr === todayStr && dateStr <= activeEndDate;
+    const isFuture = dateStr > todayStr || dateStr > activeEndDate;
     const isBefore = dateStr < createdDate;
 
     const dayDate = new Date(year, month, d);
@@ -208,14 +225,123 @@ export function HabitDetailScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const { habits, todayEntries, checkIn } = useHabitStore();
+  const { habits, todayEntries, checkIn, initialize } = useHabitStore();
   const habit = habits.find((h) => h.id === habitId);
   const { t } = useI18n();
 
+  const createdDateOnly = toDateOnly(habit?.createdAt) || formatDate(new Date());
+  const activeEndDateOnly = useMemo(() => {
+    const todayOnly = formatDate(new Date());
+    const archiveDate = toDateOnly(habit?.archivedAt);
+    const deletedDate = toDateOnly(habit?.deletedAt);
+    const candidates = [todayOnly, archiveDate, deletedDate].filter(Boolean) as string[];
+    return candidates.reduce((min, curr) => (curr < min ? curr : min), todayOnly);
+  }, [habit?.archivedAt, habit?.deletedAt]);
+
+  const minMonthIndex = useMemo(() => toMonthIndex(new Date(`${createdDateOnly}T00:00:00`)), [createdDateOnly]);
+  const maxMonthIndex = useMemo(() => toMonthIndex(new Date(`${activeEndDateOnly}T00:00:00`)), [activeEndDateOnly]);
+  const [monthIndex, setMonthIndex] = useState(maxMonthIndex);
+
+  useEffect(() => {
+    setMonthIndex((prev) => Math.max(minMonthIndex, Math.min(maxMonthIndex, prev)));
+  }, [minMonthIndex, maxMonthIndex]);
+
+  const canGoPrevMonth = monthIndex > minMonthIndex;
+  const canGoNextMonth = monthIndex < maxMonthIndex;
+
+  const goPrevMonth = useCallback(() => {
+    if (!canGoPrevMonth) return;
+    setMonthIndex((prev) => prev - 1);
+  }, [canGoPrevMonth]);
+
+  const goNextMonth = useCallback(() => {
+    if (!canGoNextMonth) return;
+    setMonthIndex((prev) => prev + 1);
+  }, [canGoNextMonth]);
+
+  const calendarPanResponder = useMemo(
+    () => PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 8,
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx <= -40) {
+          goNextMonth();
+          return;
+        }
+        if (gestureState.dx >= 40) {
+          goPrevMonth();
+        }
+      },
+    }),
+    [goNextMonth, goPrevMonth],
+  );
+
+  const seedHistoryForTesting = useCallback(() => {
+    if (!habit) return;
+
+    Alert.alert(
+      'Seed 90 days test data?',
+      'This will adjust created date and overwrite existing entries for this habit within 90 days.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Seed',
+          style: 'destructive',
+          onPress: () => {
+            const days = 90;
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - (days - 1));
+            startDate.setHours(9, 0, 0, 0);
+
+            updateHabitCreatedAtInDB(habitId, startDate.toISOString());
+
+            for (let i = 0; i < days; i++) {
+              const d = new Date(startDate);
+              d.setDate(startDate.getDate() + i);
+              const date = formatDate(d);
+              const roll = Math.random();
+
+              if (roll < 0.68) {
+                const completedAt = new Date(d);
+                completedAt.setHours(8 + Math.floor(Math.random() * 12), Math.floor(Math.random() * 60), 0, 0);
+                insertEntry({
+                  id: generateId(),
+                  habitId,
+                  date,
+                  completedAt: completedAt.toISOString(),
+                  status: 'completed',
+                });
+              } else if (roll < 0.82) {
+                const skippedAt = new Date(d);
+                skippedAt.setHours(20, 0, 0, 0);
+                insertEntry({
+                  id: generateId(),
+                  habitId,
+                  date,
+                  completedAt: skippedAt.toISOString(),
+                  status: 'skipped',
+                });
+              }
+            }
+
+            initialize();
+          },
+        },
+      ],
+    );
+  }, [habit, habitId, initialize]);
+
   // Monthly calendar data
   const calendar = useMemo(
-    () => buildMonthCalendar(habitId, habit?.createdAt || '', habit?.frequency, t.monthNames),
-    [habitId, habit, todayEntries, t],
+    () => buildMonthCalendar(
+      habitId,
+      habit?.createdAt || '',
+      monthIndex,
+      activeEndDateOnly,
+      habit?.frequency,
+      t.monthNames,
+    ),
+    [habitId, habit, todayEntries, t, monthIndex, activeEndDateOnly],
   );
 
   const streak = useMemo(() => {
@@ -388,11 +514,31 @@ export function HabitDetailScreen() {
         </Animated.View>
 
         {/* Monthly Calendar */}
-        <Animated.View entering={FadeInDown.delay(180).duration(400)} className="mx-5 px-4 pt-4">
+        <Animated.View
+          entering={FadeInDown.delay(180).duration(400)}
+          className="mx-5 px-4 pt-4"
+          {...calendarPanResponder.panHandlers}
+        >
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-xs font-bold tracking-widest text-foreground dark:text-foreground-dark">
-              {calendar.monthLabel.toUpperCase()}
-            </Text>
+            <View className="flex-row items-center">
+              <TouchableOpacity onPress={goPrevMonth} disabled={!canGoPrevMonth} hitSlop={8}>
+                <Ionicons
+                  name="chevron-back"
+                  size={16}
+                  color={!canGoPrevMonth ? (isDark ? '#525252' : '#CFCFCF') : (isDark ? '#FAFAFA' : '#0A0A0A')}
+                />
+              </TouchableOpacity>
+              <Text className="text-xs font-bold tracking-widest text-foreground dark:text-foreground-dark mx-2">
+                {calendar.monthLabel.toUpperCase()}
+              </Text>
+              <TouchableOpacity onPress={goNextMonth} disabled={!canGoNextMonth} hitSlop={8}>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={!canGoNextMonth ? (isDark ? '#525252' : '#CFCFCF') : (isDark ? '#FAFAFA' : '#0A0A0A')}
+                />
+              </TouchableOpacity>
+            </View>
             <Text className="text-sm text-muted-foreground dark:text-muted-foreground-dark">
               {calendar.successRate}{t.successPercent}
             </Text>
@@ -513,6 +659,20 @@ export function HabitDetailScreen() {
               <Text className="text-[11px] text-muted-foreground dark:text-muted-foreground-dark">{t.legendSkipped}</Text>
             </View>
           </View>
+
+          {__DEV__ && (
+            <View className="mt-4 items-center">
+              <TouchableOpacity
+                onPress={seedHistoryForTesting}
+                activeOpacity={0.8}
+                className="px-4 py-2 rounded-full border border-border dark:border-border-dark"
+              >
+                <Text className="text-xs font-semibold text-muted-foreground dark:text-muted-foreground-dark">
+                  Seed 90d test data
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </Animated.View>
       </ScrollView>
     </SafeAreaView>

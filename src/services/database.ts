@@ -189,6 +189,12 @@ export function updateHabitInDB(id: string, updates: Partial<Habit>): void {
   database.runSync(`UPDATE habits SET ${fields.join(', ')} WHERE id = ?`, ...values);
 }
 
+/** 更新习惯创建时间（用于开发测试历史数据） */
+export function updateHabitCreatedAtInDB(id: string, createdAt: string): void {
+  const database = getDatabase();
+  database.runSync('UPDATE habits SET created_at = ? WHERE id = ?', createdAt, id);
+}
+
 /** 软删除习惯（保留打卡记录用于统计） */
 export function deleteHabitFromDB(id: string): void {
   const database = getDatabase();
