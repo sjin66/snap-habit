@@ -135,6 +135,15 @@ export function HabitCard({ item, index, onCheckIn, onSkip, onDelete, onEdit, is
     cal: { label: t.unitCal, singular: t.unitCal },
   };
 
+  const getCompletedTimeLabel = useCallback((completedAt?: string) => {
+    if (!completedAt) return t.completed;
+    const date = new Date(completedAt);
+    if (Number.isNaN(date.getTime())) return t.completed;
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    return `${t.completed} · ${hour}:${minute}`;
+  }, [t.completed]);
+
   const primaryColor = isDark ? '#EBEBEB' : '#141414';
   const bgColor = isDark ? '#111111' : '#FFFFFF';
   const mutedColor = isDark ? '#B4B4B4' : '#8E8E8E';
@@ -287,7 +296,7 @@ export function HabitCard({ item, index, onCheckIn, onSkip, onDelete, onEdit, is
           ? (isDark ? '#1A1A1A' : '#F0F0F0')
           : isRest
           ? (isDark ? '#1A1A1A' : '#F0F0F0')
-          : item.color + (item.isCompleted ? '20' : '15'),
+          : item.color + (item.isCompleted ? '15' : '20'),
         borderColor: isSkipped
           ? (isDark ? '#F59E0B40' : '#DB6700')
           : isRest
@@ -303,7 +312,7 @@ export function HabitCard({ item, index, onCheckIn, onSkip, onDelete, onEdit, is
           ? (isDark ? '#2A2A2A' : '#94A3B830')
           : isRest
           ? (isDark ? '#2A2A2A' : '#E0E0E0')
-          : item.color + (item.isCompleted ? '33' : '15') }}
+          : item.color + (item.isCompleted ? '15' : '33') }}
       >
         <Ionicons name={item.icon as any} size={24} color={isSkipped ? (isDark ? '#F59E0B' : '#DB6700') : isRest ? mutedColor : item.color} />
       </View>
@@ -320,9 +329,12 @@ export function HabitCard({ item, index, onCheckIn, onSkip, onDelete, onEdit, is
         ) : (
           <View className="flex-row items-center mb-1">
             <Text
-              className="text-base font-semibold text-foreground dark:text-foreground-dark"
+              className={`text-base font-semibold shrink ${
+                item.isCompleted
+                  ? 'text-muted-foreground dark:text-muted-foreground-dark line-through'
+                  : 'text-foreground dark:text-foreground-dark'
+              }`}
               numberOfLines={1}
-              style={{ flexShrink: 1 }}
             >
               {item.name}
             </Text>
@@ -353,23 +365,32 @@ export function HabitCard({ item, index, onCheckIn, onSkip, onDelete, onEdit, is
               {t.restDay}
             </Text>
           ) : (
-            <>
-              <Text className="text-[13px] text-foreground dark:text-foreground-dark">
-                {item.dailyTarget} {(() => {
-                  const u = unitLabels[item.unit] || { label: item.unit, singular: item.unit };
-                  return item.dailyTarget === 1 ? u.singular : u.label;
-                })()}
+            item.isCompleted ? (
+              <Text
+                className="text-[13px] text-foreground dark:text-foreground-dark"
+                style={{ color: mutedColor }}
+              >
+                {getCompletedTimeLabel(item.completedAt)}
               </Text>
-              {item.streak > 0 && (
-                <>
-                  <Text className="text-[13px] text-foreground dark:text-foreground-dark"> · </Text>
-                  <Ionicons name="flame" size={13} color="#F97316" />
-                  <Text className="text-[13px] font-medium text-foreground dark:text-foreground-dark ml-0.5">
-                    {item.streak}{t.streakDaySuffix}
-                  </Text>
-                </>
-              )}
-            </>
+            ) : (
+              <>
+                <Text className="text-[13px] text-foreground dark:text-foreground-dark">
+                  {item.dailyTarget} {(() => {
+                    const u = unitLabels[item.unit] || { label: item.unit, singular: item.unit };
+                    return item.dailyTarget === 1 ? u.singular : u.label;
+                  })()}
+                </Text>
+                {item.streak > 0 && (
+                  <>
+                    <Text className="text-[13px] text-foreground dark:text-foreground-dark"> · </Text>
+                    <Ionicons name="flame" size={13} color="#F97316" />
+                    <Text className="text-[13px] font-medium text-foreground dark:text-foreground-dark ml-0.5">
+                      {item.streak}{t.streakDaySuffix}
+                    </Text>
+                  </>
+                )}
+              </>
+            )
           )}
         </View>
       </View>

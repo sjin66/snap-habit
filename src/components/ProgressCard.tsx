@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, useColorScheme } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,12 +21,51 @@ interface Props {
   total: number;
 }
 
+function getTimePeriod(hour: number): 'morning' | 'noon' | 'afternoon' | 'evening' {
+  if (hour >= 5 && hour < 11) return 'morning';
+  if (hour >= 11 && hour < 14) return 'noon';
+  if (hour >= 14 && hour < 18) return 'afternoon';
+  return 'evening';
+}
+
+function getPeriodVisual(period: 'morning' | 'noon' | 'afternoon' | 'evening', isDark: boolean) {
+  if (period === 'morning') {
+    return {
+      icon: 'sunny-outline' as const,
+      tint: isDark ? '#FAFAFA10' : '#0A0A0A08',
+      iconColor: isDark ? '#FAFAFA22' : '#0A0A0A1A',
+    };
+  }
+  if (period === 'noon') {
+    return {
+      icon: 'sunny' as const,
+      tint: isDark ? '#FAFAFA12' : '#0A0A0A09',
+      iconColor: isDark ? '#FAFAFA24' : '#0A0A0A1C',
+    };
+  }
+  if (period === 'afternoon') {
+    return {
+      icon: 'partly-sunny-outline' as const,
+      tint: isDark ? '#FAFAFA10' : '#0A0A0A08',
+      iconColor: isDark ? '#FAFAFA20' : '#0A0A0A18',
+    };
+  }
+  return {
+    icon: 'moon-outline' as const,
+    tint: isDark ? '#FAFAFA0F' : '#0A0A0A07',
+    iconColor: isDark ? '#FAFAFA1F' : '#0A0A0A17',
+  };
+}
+
 export function ProgressCard({ completed, total }: Props) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { t } = useI18n();
+  const period = getTimePeriod(new Date().getHours());
+  const periodVisual = getPeriodVisual(period, isDark);
   const percent = total === 0 ? 0 : Math.min(100, Math.round((completed / total) * 100));
   const isAllDone = total > 0 && completed === total;
+  const quote = t.quotes[(new Date().getDate() - 1) % t.quotes.length];
 
   const prevCompletedRef = useRef(completed);
   const celebrationMsgRef = useRef<{ emoji: string; text: string }>(t.celebrationMessages[0]);
@@ -121,6 +161,33 @@ export function ProgressCard({ completed, total }: Props) {
     <View className="mx-5">
       {/* Main progress card */}
       <View className="bg-card dark:bg-card-dark rounded-2xl p-5 shadow-sm border border-border dark:border-border-dark overflow-hidden">
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: periodVisual.tint,
+          }}
+        />
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            right: -16,
+            top: -20,
+            transform: [{ rotate: '-10deg' }],
+          }}
+        >
+          <Ionicons
+            name={periodVisual.icon}
+            size={112}
+            color={periodVisual.iconColor}
+          />
+        </View>
+
         {/* Normal progress content */}
         <Animated.View style={normalContentStyle}>
           <View className="flex-row justify-between items-center mb-3">
@@ -136,7 +203,7 @@ export function ProgressCard({ completed, total }: Props) {
           </View>
 
           {/* Progress bar */}
-          <View className="h-1.5 bg-secondary dark:bg-secondary-dark rounded-full overflow-hidden">
+          <View className="h-2 rounded-full overflow-hidden bg-background dark:bg-background-dark">
             <Animated.View
               className="h-full bg-primary dark:bg-primary-dark rounded-full"
               style={barStyle}
@@ -157,6 +224,13 @@ export function ProgressCard({ completed, total }: Props) {
               ]}
             />
           </View>
+
+          <Text
+            className="mt-3 text-xs italic text-muted-foreground dark:text-muted-foreground-dark"
+            numberOfLines={2}
+          >
+            {quote}
+          </Text>
         </Animated.View>
 
         {/* Celebration overlay — same card, positioned on top */}
