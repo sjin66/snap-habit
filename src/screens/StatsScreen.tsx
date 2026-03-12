@@ -296,6 +296,8 @@ export function StatsScreen() {
           const dayGridEntries = gridEntries.filter((e) => e.date === dateStr);
           const dayGridHabitIds = new Set(dayGridEntries.map((e) => e.habitId));
           const activeHabits = allHabits.filter((h) => {
+            const createdDate = (h.createdAt || '').split('T')[0];
+            if (dateStr < createdDate) return false;
             if (isRestDay(h.frequency, dayDate, dayGridHabitIds.has(h.id))) return false;
             if (h.deletedAt && dateStr > h.deletedAt.split('T')[0]) return false;
             return true;
