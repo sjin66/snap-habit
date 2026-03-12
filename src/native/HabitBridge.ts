@@ -1,5 +1,5 @@
 import { NativeModules, Platform } from 'react-native';
-import type { TodayHabitItem } from '@types/habit';
+import type { TodayHabitItem } from '../types/habit';
 
 const HabitBridgeModule = NativeModules.HabitBridge;
 

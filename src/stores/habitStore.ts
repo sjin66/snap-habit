@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Habit, HabitEntry, TodayHabitItem } from '@types/habit';
+import type { Habit, HabitEntry, TodayHabitItem } from '../types/habit';
 import {
   initDatabase,
   getAllHabits,

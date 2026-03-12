@@ -4,7 +4,7 @@ import en from './en';
 import zh from './zh';
 
 export type Language = 'en' | 'zh';
-export type Translations = typeof en;
+export type Translations = typeof en | typeof zh;
 
 const translations: Record<Language, Translations> = { en, zh };
 
